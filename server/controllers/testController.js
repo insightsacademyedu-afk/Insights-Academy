@@ -23,7 +23,7 @@ export async function list(req, res, next) {
     });
     filter.archivedAt = null;
 
-    if (req.user.role !== "admin") {
+    if (!["admin", "subadmin"].includes(req.user.role)) {
       if (!req.user.staffId) return res.json(paginatedResponse([], 0, page, limit));
       filter.createdBy = req.user.staffId;
       const assignments = await getTeacherAssignments(req.user.staffId);
@@ -55,7 +55,7 @@ export async function create(req, res, next) {
     }
 
     let createdBy;
-    if (req.user.role === "admin") {
+    if (["admin", "subadmin"].includes(req.user.role)) {
       // Admin creating on behalf of a teacher must specify which staff member
       createdBy = req.body.createdBy;
       if (!createdBy) {
@@ -110,12 +110,12 @@ async function loadTestForMutation(req) {
     err.status = 404;
     throw err;
   }
-  if (req.user.role !== "admin" && String(test.createdBy) !== String(req.user.staffId)) {
+  if (!["admin", "subadmin"].includes(req.user.role) && String(test.createdBy) !== String(req.user.staffId)) {
     const err = new Error("You can only manage tests you created");
     err.status = 403;
     throw err;
   }
-  if (req.user.role !== "admin" && !await isTeacherAuthorizedFor(req.user.staffId, { classId: test.class, sectionId: test.section, subjectId: test.subject, academicSession: test.academicSession })) {
+  if (!["admin", "subadmin"].includes(req.user.role) && !await isTeacherAuthorizedFor(req.user.staffId, { classId: test.class, sectionId: test.section, subjectId: test.subject, academicSession: test.academicSession })) {
     throw Object.assign(new Error("Your assignment no longer permits access to this test"), { status: 403 });
   }
   return test;

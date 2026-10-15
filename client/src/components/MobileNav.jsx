@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { X, Lock } from "lucide-react";
-import { NAV_SECTIONS, CURRENT_PHASE, canAccessNav } from "../lib/nav";
+import { getNavSections, CURRENT_PHASE, canAccessNav } from "../lib/nav";
 import { useAuth } from "../context/AuthContext";
 import AcademyBrand from "./AcademyBrand";
 import { useMenuScroll } from "../lib/useMenuScroll";
@@ -21,7 +21,7 @@ export default function MobileNav({ open, onClose }) {
           </button>
         </div>
         <nav className="px-3 py-4 space-y-6">
-          {NAV_SECTIONS.map((section) => {
+          {getNavSections(user?.role).map((section) => {
             const items = section.items.filter((item) => canAccessNav(item, user?.role));
             if (!items.length) return null;
             return (

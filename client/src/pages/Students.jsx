@@ -59,7 +59,8 @@ function emptyStudentForm() {
 const EMPTY_ENROLLMENT = { academicSession: "", class: "", section: "" };
 
 export default function Students() {
-  const { isAdmin } = useAuth();
+  const { isAdmin: fullAdmin, user } = useAuth();
+  const canManageStudents = fullAdmin || user?.role === "subadmin";
   const toast = useToast();
   const [genderFilter, setGenderFilter] = useState("");
   const [classFilter, setClassFilter] = useState("");
@@ -81,21 +82,21 @@ export default function Students() {
   }, []);
 
   useEffect(() => {
-    if (!isAdmin || sessions.length === 0) return;
+    if (!canManageStudents || sessions.length === 0) return;
     const currentSession = sessions.find((session) => session.isCurrent);
     classesApi
       .list({ limit: 200, status: "active", ...(currentSession ? { academicSession: currentSession._id } : {}) })
       .then((res) => setFilterClasses(res.items))
       .catch(() => setFilterClasses([]));
-  }, [isAdmin, sessions]);
+  }, [canManageStudents, sessions]);
 
   useEffect(() => {
-    if (!isAdmin || !classFilter) return;
+    if (!canManageStudents || !classFilter) return;
     sectionsApi
       .list({ limit: 200, class: classFilter, status: "active" })
       .then((res) => setFilterSections(res.items))
       .catch(() => setFilterSections([]));
-  }, [classFilter, isAdmin]);
+  }, [classFilter, canManageStudents]);
 
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -109,10 +110,13 @@ export default function Students() {
     setFormModalOpen(true);
   }
 
-  function openEdit(row) {
+  async function openEdit(row) {
     setViewTarget(null);
-    setEditing(row);
-    setFormModalOpen(true);
+    try {
+      const student = fullAdmin ? row : (await studentsApi.getOne(row._id)).student;
+      setEditing(student);
+      setFormModalOpen(true);
+    } catch (error) { toast.error(error.message || "Could not load student details."); }
   }
 
   function openEnroll(row) {
@@ -150,7 +154,7 @@ export default function Students() {
         </div>
       ),
     },
-    isAdmin && {
+    canManageStudents && {
       key: "guardian",
       header: "Guardian",
       render: (row) =>
@@ -169,7 +173,7 @@ export default function Students() {
     {
       key: "actions",
       header: "",
-      headClassName: isAdmin ? "w-32" : "w-12",
+      headClassName: canManageStudents ? "w-32" : "w-12",
       render: (row) => (
         <div className="flex items-center gap-1 justify-end">
           <button
@@ -180,7 +184,7 @@ export default function Students() {
           >
             <Eye size={14} />
           </button>
-          {isAdmin && (
+          {canManageStudents && (
             <>
               <button
                 onClick={() => openEnroll(row)}
@@ -198,14 +202,14 @@ export default function Students() {
               >
                 <Pencil size={14} />
               </button>
-              <button
+              {fullAdmin && <button
                 onClick={() => openDelete(row)}
                 className="p-1.5 text-ink-500 hover:text-brick-600"
                 aria-label="Archive"
                 title="Archive"
               >
                 <Trash2 size={14} />
-              </button>
+              </button>}
             </>
           )}
         </div>
@@ -250,7 +254,7 @@ export default function Students() {
           <option value="other">Other</option>
         </select>
 
-        {isAdmin && (
+        {canManageStudents && (
           <>
             <select
               aria-label="Class filter"
@@ -284,7 +288,7 @@ export default function Students() {
 
         <div className="flex-1" />
 
-        {isAdmin && (
+        {canManageStudents && (
           <Button onClick={openCreate}>
             <Plus size={15} />
             New student
@@ -303,14 +307,14 @@ export default function Students() {
         rows={list.items}
         loading={list.loading}
         emptyMessage={
-          isAdmin
+          canManageStudents
             ? "No students yet — create one to enroll them into a class/section."
             : "No students assigned to your classes yet."
         }
       />
       <Pagination page={list.page} totalPages={list.totalPages} total={list.total} onChange={list.setPage} />
 
-      {isAdmin && (
+      {canManageStudents && (
         <StudentFormModal
           open={formModalOpen}
           editing={editing}
@@ -325,14 +329,16 @@ export default function Students() {
 
       <StudentDetailModal
         student={viewTarget}
-        isAdmin={isAdmin}
+        canManageStudents={canManageStudents}
+        canArchive={fullAdmin}
+        canManageParent={fullAdmin}
         onClose={() => setViewTarget(null)}
         onEdit={openEdit}
         onEnroll={openEnroll}
         onDelete={openDelete}
       />
 
-      {isAdmin && (
+      {canManageStudents && (
         <EnrollModal
           key={enrollTarget?._id || "enroll-closed"}
           student={enrollTarget}
@@ -891,7 +897,7 @@ function DetailRow({ label, value }) {
   );
 }
 
-function StudentDetailModal({ student, isAdmin, onClose, onEdit, onEnroll, onDelete }) {
+function StudentDetailModal({ student, canManageStudents, canArchive, canManageParent, onClose, onEdit, onEnroll, onDelete }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -936,7 +942,7 @@ function StudentDetailModal({ student, isAdmin, onClose, onEdit, onEnroll, onDel
             <DetailRow label="Father's name" value={s.fatherName} />
             <DetailRow label="Gender" value={<span className="capitalize">{s.gender}</span>} />
             <DetailRow label="Date of birth" value={formatDate(s.dob)} />
-            {isAdmin && <DetailRow label="CNIC / B-Form" value={s.cnicOrBForm} />}
+            {canManageStudents && <DetailRow label="CNIC / B-Form" value={s.cnicOrBForm} />}
             <DetailRow label="Phone" value={s.phone} />
             <DetailRow label="Address" value={s.address} />
             <DetailRow label="Admission date" value={formatDate(s.admissionDate)} />
@@ -954,10 +960,10 @@ function StudentDetailModal({ student, isAdmin, onClose, onEdit, onEnroll, onDel
             {s.guardian?.emergencyContact && <DetailRow label="Emergency contact" value={s.guardian.emergencyContact} />}
           </DetailSection>
 
-          {isAdmin && <StudentParentLogin studentId={s._id} accounts={detail.parentPortals}
+          {canManageParent && <StudentParentLogin studentId={s._id} accounts={detail.parentPortals}
             onUpdated={async () => setDetail(await studentsApi.getOne(s._id))} />}
 
-          {isAdmin && s.feeDetails && (
+          {canManageStudents && s.feeDetails && (
             <DetailSection title="Fee structure">
               <DetailRow label="Monthly tuition" value={formatCurrency(s.feeDetails.monthlyTuition)} />
               <DetailRow label="Admission fee" value={formatCurrency(s.feeDetails.admissionFee)} />
@@ -988,7 +994,7 @@ function StudentDetailModal({ student, isAdmin, onClose, onEdit, onEnroll, onDel
             )}
           </DetailSection>
 
-          {isAdmin && (
+          {canManageStudents && (
             <div className="flex flex-wrap justify-end gap-2 border-t border-ink-100 pt-4">
               <Button variant="ghost" onClick={() => onEnroll(student)}>
                 <ArrowRightLeft size={14} />
@@ -998,10 +1004,10 @@ function StudentDetailModal({ student, isAdmin, onClose, onEdit, onEnroll, onDel
                 <Pencil size={14} />
                 Edit
               </Button>
-              <Button variant="danger" onClick={() => onDelete(student)}>
+              {canArchive && <Button variant="danger" onClick={() => onDelete(student)}>
                 <Trash2 size={14} />
                 Archive
-              </Button>
+              </Button>}
             </div>
           )}
         </div>

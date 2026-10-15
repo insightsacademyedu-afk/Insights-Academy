@@ -1,5 +1,6 @@
 import {
   KeyRound,
+  Bell,
   ArchiveRestore,
   LayoutDashboard,
   CalendarRange,
@@ -19,7 +20,11 @@ import {
 // still appear in the nav (so the app's shape is visible end-to-end) but
 // route to a placeholder page instead of a working screen.
 export const NAV_SECTIONS = [
-  { label: "Account", items: [{ to: "/account", label: "My account", icon: KeyRound, phase: 1, adminOnly: false }] },
+  { label: "Communication", items: [{ to: "/notifications", label: "Notifications", icon: Bell, phase: 1, adminOnly: false }] },
+  { label: "Account", items: [
+    { to: "/account", label: "My account", icon: KeyRound, phase: 1, adminOnly: false },
+    { to: "/sub-admins", label: "Sub-admins", icon: Users, phase: 1, adminOnly: true },
+  ] },
   { label: "History", items: [{ to: "/archive", label: "Archive history", icon: ArchiveRestore, phase: 1, adminOnly: true }] },
   {
     label: "Overview",
@@ -56,8 +61,19 @@ export const NAV_SECTIONS = [
 ];
 
 export const CURRENT_PHASE = 9;
+export const SUBADMIN_PATHS = ["/", "/account", "/students", "/tests", "/fees", "/reports"];
+
+export function getNavSections(role) {
+  if (!["guardian", "subadmin"].includes(role)) return NAV_SECTIONS;
+  return [
+    ...NAV_SECTIONS.filter((section) => section.items.some((item) => item.to === "/")),
+    ...NAV_SECTIONS.filter((section) => !section.items.some((item) => item.to === "/")),
+  ];
+}
 
 export function canAccessNav(item, role) {
+  if (item.to === "/notifications") return role === "admin" || role === "guardian";
+  if (role === "subadmin") return SUBADMIN_PATHS.includes(item.to);
   if (role === "guardian") return item.to === "/" || item.to === "/account";
   return !item.adminOnly || role === "admin";
 }

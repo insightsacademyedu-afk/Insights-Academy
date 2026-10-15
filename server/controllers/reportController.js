@@ -39,7 +39,7 @@ export async function studentsReport(req, res, next) {
     });
     filter.archivedAt = null;
 
-    const students = await Student.find(filter).populate("guardian");
+    const students = await Student.find(filter).select(req.user.role === "subadmin" ? "-feeDetails" : "").lean(req.user.role === "subadmin").populate("guardian");
 
     if (req.query.format === "csv") {
       const csv = toCsv(students, [
@@ -63,7 +63,7 @@ export async function studentsReport(req, res, next) {
 export async function feeCollectionReport(req, res, next) {
   try {
     const { from, to, format } = req.query;
-    const filter = {};
+    const filter = req.query.student ? { student: req.query.student } : {};
     if (from || to) {
       filter.paidAt = {};
       if (from) filter.paidAt.$gte = new Date(from);
@@ -99,6 +99,7 @@ export async function outstandingFeesReport(req, res, next) {
   try {
     const invoices = await FeeInvoice.find({
       status: { $in: ["unpaid", "partially_paid", "overdue"] },
+      ...(req.query.student ? { student: req.query.student } : {}),
     }).populate("student", "fullName admissionNumber");
 
     if (req.query.format === "csv") {

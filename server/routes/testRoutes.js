@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
+import Staff from "../models/Staff.js";
 import { list, create, getOne, roster, enterMarks, finalize, amendMark } from "../controllers/testController.js";
 
 const router = Router();
@@ -9,6 +10,11 @@ const router = Router();
 // assignment check in create()), not via a role gate here, since "is this
 // teacher allowed to touch THIS specific test" isn't a static role check.
 router.use(requireAuth);
+
+router.get("/teachers", requireRole("admin", "subadmin"), async (_req, res, next) => {
+  try { res.json({ items: await Staff.find({ archivedAt: null, status: "active" }).select("fullName").sort({ fullName: 1 }) }); }
+  catch (error) { next(error); }
+});
 
 router.get("/", list);
 router.post("/", create);

@@ -16,7 +16,7 @@ function renderAt(path, { adminOnly = false } = {}) {
         <Route path="/" element={<div>Home page</div>} />
         <Route path="/account" element={<div>Change temporary password</div>} />
         <Route
-          path="/secret"
+          path={path}
           element={
             <ProtectedRoute adminOnly={adminOnly}>
               <div>Secret content</div>
@@ -29,6 +29,17 @@ function renderAt(path, { adminOnly = false } = {}) {
 }
 
 describe("ProtectedRoute", () => {
+  it.each(["/students", "/tests", "/fees", "/reports"])("allows a sub-admin to open %s", path => {
+    mockUseAuth.mockReturnValue({ user: { role: "subadmin" }, status: "authenticated" });
+    renderAt(path, { adminOnly: true });
+    expect(screen.getByText("Secret content")).toBeInTheDocument();
+  });
+
+  it.each(["/sub-admins", "/salaries", "/staff", "/archive", "/classes"])("blocks a sub-admin from opening %s directly", path => {
+    mockUseAuth.mockReturnValue({ user: { role: "subadmin" }, status: "authenticated" });
+    renderAt(path, { adminOnly: true });
+    expect(screen.getByText("Home page")).toBeInTheDocument();
+  });
   it("allows guardians with the legacy password-change flag to reach their portal", () => {
     mockUseAuth.mockReturnValue({ user: { role: "guardian", mustChangePassword: true }, status: "authenticated" });
     renderAt("/secret");

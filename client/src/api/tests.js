@@ -17,6 +17,7 @@ export const testsApi = {
   // (testController.list sets filter.createdBy = req.user.staffId for
   // non-admins) — no client-side filtering needed for that.
   list: base.list,
+  teachers: () => api.get("/tests/teachers").then(response => response.data),
   // GET /tests/:id — NOT a bare test: returns { test, results }, where
   // each result already has a `summary` (percentage/grade/passed) computed
   // server-side via utils/grading.js#summarize().

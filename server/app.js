@@ -33,6 +33,8 @@ import settingsRoutes from "./routes/settingsRoutes.js";
 import backupRoutes from "./routes/backupRoutes.js";
 import guardianAccountRoutes from "./routes/guardianAccountRoutes.js";
 import guardianPortalRoutes from "./routes/guardianPortalRoutes.js";
+import subAdminRoutes from "./routes/subAdminRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 const app = express();
 
@@ -75,6 +77,8 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/guardians", guardianAccountRoutes);
+app.use("/api/sub-admins", subAdminRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/guardian-portal", guardianPortalRoutes);
 app.use("/api/academic-sessions", academicSessionRoutes);
 app.use("/api/classes", classRoutes);

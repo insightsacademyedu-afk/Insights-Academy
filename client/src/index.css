@@ -46,30 +46,33 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-surface: #1a2638;
-  --color-paper-50: #172234;
-  --color-paper-100: #101927;
-  --color-paper-200: #243247;
-  --color-paper-300: #35465d;
-  --color-ink-950: #f1f5fb;
-  --color-ink-900: #e0e8f5;
-  --color-ink-800: #ced9eb;
-  --color-ink-700: #bccbe1;
-  --color-ink-600: #a9bbd3;
-  --color-ink-500: #91a5bf;
-  --color-ink-300: #4e6380;
-  --color-ink-200: #35465e;
-  --color-ink-100: #26364c;
-  --color-action-900: #344b6c;
-  --color-action-800: #405b80;
-  --color-brass-600: #e1b85f;
-  --color-brass-100: #3c321e;
-  --color-moss-600: #92d4a4;
-  --color-moss-100: #20392e;
-  --color-brick-600: #f3a593;
-  --color-brick-100: #422b2c;
-  --color-amber-600: #e6c078;
-  --color-amber-100: #3b3324;
+  --color-surface: #19212c;
+  --color-paper-50: #141c27;
+  --color-paper-100: #0c121b;
+  --color-paper-200: #202b39;
+  --color-paper-300: #334153;
+  --color-ink-950: #f3f1ec;
+  --color-ink-900: #e3e7ed;
+  --color-ink-800: #d1d8e2;
+  --color-ink-700: #bdc8d6;
+  --color-ink-600: #a6b3c4;
+  --color-ink-500: #8f9fb3;
+  --color-ink-300: #49596f;
+  --color-ink-200: #2d394b;
+  --color-ink-100: #202c3c;
+  --color-action-900: #303f55;
+  --color-action-800: #3c4e67;
+  --color-brass-400: #dfc18a;
+  --color-brass-500: #c8a66a;
+  --color-brass-600: #ddbd83;
+  --color-brass-100: #342d22;
+  --color-primary-hover: #d9ba82;
+  --color-moss-600: #94cbb0;
+  --color-moss-100: #1c332c;
+  --color-brick-600: #e5a297;
+  --color-brick-100: #39272b;
+  --color-amber-600: #dfbf87;
+  --color-amber-100: #342e23;
 }
 
 /* Navigation keeps its navy palette in both themes. */
@@ -194,7 +197,7 @@ body {
 .academy-login-card input::placeholder { color: #8b99b0; opacity: 1; }
 .academy-login-card input:not([type="radio"]):focus { outline: 2px solid rgb(199 149 47 / .25); outline-offset: 1px; border-color: #ba8b34; box-shadow: none; }
 .academy-login-roles { min-width: 0; }
-.academy-login-roles__options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.academy-login-roles__options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .academy-login-roles__options > label { display: flex; align-items: center; justify-content: center; position: relative; min-width: 0; min-height: 44px; touch-action: manipulation; }
 .academy-login-roles__options > label:focus-within { outline: 2px solid #c7952f; outline-offset: 2px; }
 .academy-login-roles:disabled { opacity: .6; }
@@ -241,6 +244,107 @@ body {
   .academy-login-card__help { font-size: 12px; }
   .academy-login__corner { width: 180px; }
 }
+/* Layered edges add depth without changing layout or moving form fields. */
+:root {
+  --depth-edge: rgb(255 255 255 / .75);
+  --depth-shadow: rgb(19 27 48 / .1);
+  --depth-shadow-raised: rgb(19 27 48 / .16);
+}
+:root[data-theme="dark"] {
+  --depth-edge: rgb(222 231 245 / .065);
+  --depth-shadow: rgb(0 0 0 / .24);
+  --depth-shadow-raised: rgb(0 0 0 / .42);
+}
+.depth-panel,
+.depth-card,
+.app-content section.rounded-lg {
+  box-shadow: inset 0 1px 0 var(--depth-edge), 0 2px 3px var(--depth-shadow), 0 10px 24px -16px var(--depth-shadow-raised);
+}
+.academy-login-card {
+  border-bottom-width: 3px;
+  box-shadow: inset 0 1px 0 var(--depth-edge), 0 3px 0 rgb(0 0 0 / .12), 0 14px 24px rgb(0 0 0 / .2), 0 32px 70px rgb(0 0 0 / .35);
+}
+.academy-login__brand .academy-brand__mark {
+  filter: drop-shadow(0 2px 0 rgb(99 68 17 / .8)) drop-shadow(0 8px 12px rgb(0 0 0 / .35));
+}
+.depth-button,
+.academy-login-card button[type="submit"] {
+  box-shadow: inset 0 1px 0 var(--depth-edge), 0 2px 0 var(--depth-shadow-raised), 0 4px 8px var(--depth-shadow);
+}
+.depth-button:disabled,
+.academy-login-card button[type="submit"]:disabled { box-shadow: none; }
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .depth-card {
+    transition: transform 180ms ease, box-shadow 180ms ease;
+  }
+  .depth-card:hover {
+    transform: perspective(1000px) translateY(-3px) rotateX(1.5deg) rotateY(-1deg);
+    box-shadow: inset 0 1px 0 var(--depth-edge), 0 4px 6px var(--depth-shadow), 0 18px 30px -12px var(--depth-shadow-raised);
+  }
+  .depth-button,
+  .academy-login-card button[type="submit"] {
+    transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+  .depth-button:not(:disabled):hover,
+  .academy-login-card button[type="submit"]:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 1px 0 var(--depth-edge), 0 3px 0 var(--depth-shadow-raised), 0 8px 14px var(--depth-shadow);
+  }
+  .depth-button:not(:disabled):active,
+  .academy-login-card button[type="submit"]:not(:disabled):active {
+    transform: translateY(1px);
+    box-shadow: inset 0 1px 3px var(--depth-shadow-raised);
+  }
+}
+
+/* Dark-only finish: graphite surfaces, champagne accents, restrained highlights. */
+:root[data-theme="dark"] .theme-navigation {
+  --color-ink-950: #0d141f;
+  --color-ink-900: #172131;
+  --color-ink-800: #263246;
+  --color-ink-500: #8f9fb3;
+  --color-ink-200: #bcc8d8;
+}
+:root[data-theme="dark"] .theme-navigation a[aria-current="page"] {
+  color: #ecd6b0;
+  background: #24272c;
+  box-shadow: inset 3px 0 0 #c8a66a, inset 0 1px 0 rgb(200 166 106 / .08);
+}
+:root[data-theme="dark"] :is(.depth-panel, .depth-card, .ui-surface, .app-content section.rounded-lg) {
+  background-image: linear-gradient(145deg, rgb(222 231 245 / .025), transparent 60%);
+}
+:root[data-theme="dark"] header.bg-paper-50 {
+  background: linear-gradient(110deg, #171f2b, #121a25);
+  box-shadow: 0 1px 0 rgb(255 255 255 / .025), 0 6px 20px rgb(0 0 0 / .12);
+}
+:root[data-theme="dark"] button.bg-brass-500 {
+  color: #171b22;
+  background-image: linear-gradient(180deg, rgb(255 255 255 / .12), transparent);
+}
+:root[data-theme="dark"] .academy-login-card {
+  background-image: linear-gradient(145deg, rgb(222 231 245 / .035), transparent 65%);
+}
+:root[data-theme="dark"] .academy-login-card button[type="submit"] {
+  color: #171b22;
+  background: linear-gradient(110deg, #d2b279, #bb975b);
+  border-color: #dbbf8c;
+}
+:root[data-theme="dark"] .academy-login-card button[type="submit"]:hover {
+  background: linear-gradient(110deg, #dfc18a, #c8a66a);
+}
+:root[data-theme="dark"] :is(input, textarea)::placeholder { color: #8191a7; }
+:root[data-theme="dark"] :is(input, select, textarea):focus-visible {
+  border-color: #c8a66a;
+  outline-color: #c8a66a;
+  --tw-ring-color: rgb(200 166 106 / .16);
+}
+:root[data-theme="dark"] :is(.app-content, .ui-surface) tbody tr:hover {
+  background-color: #1d2939;
+}
+:root[data-theme="dark"] ::selection { background: #655236; color: #fff8e9; }
+:root[data-theme="dark"] * { scrollbar-color: #3c4b60 #111923; }
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;

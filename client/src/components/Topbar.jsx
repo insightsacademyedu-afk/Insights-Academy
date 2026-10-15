@@ -35,7 +35,7 @@ export default function Topbar({ title, onOpenMobileNav }) {
           </span>
           <span className="hidden min-w-0 truncate sm:block" title={user?.displayName || user?.username}>{user?.displayName || user?.username}</span>
           <span className="hidden shrink-0 text-xs uppercase text-ink-500 tracking-wide sm:inline">
-            {user?.role}
+            {user?.role === "subadmin" ? "Sub-admin" : user?.role}
           </span>
           <ChevronDown size={14} className="shrink-0" />
         </button>

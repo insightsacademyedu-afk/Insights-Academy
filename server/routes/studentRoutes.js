@@ -19,13 +19,14 @@ router.get("/", list);
 // outside their assignment gets 403, no matter how they got that ID.
 router.get("/:id", requireStudentAccess("id"), getOne);
 
-// Everything that creates/modifies student records is admin-only.
-router.use(requireRole("admin"));
+// Sub-admins can register and update students; account actions and archives
+// remain exclusive to the main admin.
+router.use(requireRole("admin", "subadmin"));
 
 router.post("/", create);
-router.post("/:id/parent-login/:action", sensitiveActionRateLimiter, parentLoginAction);
+router.post("/:id/parent-login/:action", requireRole("admin"), sensitiveActionRateLimiter, parentLoginAction);
 router.put("/:id", update);
 router.post("/:id/enroll", enroll);
-router.delete("/:id", sensitiveActionRateLimiter, archiveResource("student"));
+router.delete("/:id", requireRole("admin"), sensitiveActionRateLimiter, archiveResource("student"));
 
 export default router;

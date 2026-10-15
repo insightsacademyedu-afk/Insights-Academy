@@ -20,8 +20,8 @@ export async function login(req, res, next) {
     if (req.get("origin") && req.get("origin") !== config.clientUrl) return res.status(403).json({ message: "Untrusted login origin" });
     const { username, password, role } = req.body;
 
-    if (typeof role !== "string" || !["admin", "staff", "parent"].includes(role)) {
-      return res.status(400).json({ message: "Select Admin, Staff or Parent to sign in." });
+    if (typeof role !== "string" || !["admin", "subadmin", "staff", "parent"].includes(role)) {
+      return res.status(400).json({ message: "Select Admin, Sub-admin, Staff or Parent to sign in." });
     }
     const accountRole = role === "parent" ? "guardian" : role;
 

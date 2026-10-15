@@ -16,7 +16,7 @@ vi.mock('../api/academicSetup',()=>{
   return {academicSessionsApi:api(),subjectsApi:api(),designationsApi:api(),classesApi:api(),sectionsApi:api()};
 });
 vi.mock('../api/staff',()=>({staffApi:{list:vi.fn(),create:vi.fn(),update:vi.fn()}}));
-vi.mock('../api/teacherAssignments',()=>({teacherAssignmentsApi:{list:vi.fn()}}));
+vi.mock('../api/teacherAssignments',()=>({teacherAssignmentsApi:{list:vi.fn(),createBulk:vi.fn(),update:vi.fn()}}));
 vi.mock('../api/reports',()=>({fetchStudentsReport:vi.fn(),fetchFeeCollectionReport:vi.fn(),fetchOutstandingFeesReport:vi.fn(),fetchExpensesReport:vi.fn(),downloadReportCsv:vi.fn()}));
 vi.mock('../api/salaries',()=>({salariesApi:{list:vi.fn(),create:vi.fn(),bulkGenerate:vi.fn(),markPaid:vi.fn()}}));
 vi.mock('../api/expenses',()=>({expensesApi:{list:vi.fn()}}));
@@ -70,6 +70,33 @@ test('staff directory and assignment tabs load their respective data',async()=>{
   mount(Staff);await waitFor(()=>expect(staffApi.list).toHaveBeenCalled());
   await userEvent.click(screen.getByRole('button',{name:'Teacher assignments'}));
   await waitFor(()=>expect(teacherAssignmentsApi.list).toHaveBeenCalled());
+});
+
+test('teacher assignment selects multiple classes and subjects and submits their section combinations',async()=>{
+  setup.academicSessionsApi.list.mockResolvedValue({...empty,items:[{_id:'session-1',name:'Current session',isCurrent:true}]});
+  staffApi.list.mockResolvedValue({...empty,items:[{_id:'teacher-1',fullName:'Teacher One'}]});
+  setup.classesApi.list.mockResolvedValue({...empty,items:[{_id:'class-1',name:'Class One'},{_id:'class-2',name:'Class Two'}]});
+  setup.sectionsApi.list.mockImplementation(({class:classId})=>Promise.resolve({...empty,items:[{_id:`section-${classId}`,name:'A'}]}));
+  setup.subjectsApi.list.mockResolvedValue({...empty,items:[{_id:'math',name:'Math',code:'MATH'},{_id:'english',name:'English',code:'ENG'}]});
+  teacherAssignmentsApi.createBulk.mockResolvedValue({created:4,skipped:0});
+  mount(Staff);const user=userEvent.setup();
+  await user.click(screen.getByRole('button',{name:'Teacher assignments'}));
+  await user.click(screen.getByRole('button',{name:'New assignment'}));
+  await user.selectOptions(screen.getByLabelText(/^Teacher \*/), 'teacher-1');
+  await user.click(await screen.findByRole('checkbox',{name:'Class One'}));
+  await user.click(screen.getByRole('checkbox',{name:'Class Two'}));
+  await user.click(screen.getByRole('checkbox',{name:'Math (MATH)'}));
+  await user.click(screen.getByRole('checkbox',{name:'English (ENG)'}));
+  expect(screen.getByText(/4 assignments selected/)).toBeTruthy();
+  await user.click(screen.getByRole('button',{name:'Create assignments'}));
+  await waitFor(()=>expect(teacherAssignmentsApi.createBulk).toHaveBeenCalledWith({
+    teacher:'teacher-1',academicSession:'session-1',status:'active',assignments:[
+      {class:'class-1',section:'section-class-1',subject:'math'},
+      {class:'class-1',section:'section-class-1',subject:'english'},
+      {class:'class-2',section:'section-class-2',subject:'math'},
+      {class:'class-2',section:'section-class-2',subject:'english'},
+    ],
+  }));
 });
 test('new staff salary starts blank and saves only the entered amount',async()=>{
   mount(Staff);const user=userEvent.setup();

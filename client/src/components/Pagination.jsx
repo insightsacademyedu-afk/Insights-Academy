@@ -7,6 +7,7 @@ export default function Pagination({ page, totalPages, total, onChange }) {
       <span>{total} total</span>
       <div className="flex items-center gap-2">
         <button
+          type="button"
           onClick={() => onChange(page - 1)}
           disabled={page <= 1}
           className="rounded-md border border-ink-200 p-2.5 disabled:opacity-40 hover:border-ink-300"
@@ -18,6 +19,7 @@ export default function Pagination({ page, totalPages, total, onChange }) {
           {page} / {totalPages}
         </span>
         <button
+          type="button"
           onClick={() => onChange(page + 1)}
           disabled={page >= totalPages}
           className="rounded-md border border-ink-200 p-2.5 disabled:opacity-40 hover:border-ink-300"

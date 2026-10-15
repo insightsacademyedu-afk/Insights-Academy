@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import StudentSelector from "../components/StudentSelector";
 import { Download } from "lucide-react";
 import AppLayout from "../components/AppLayout";
 import DataTable from "../components/DataTable";
@@ -16,14 +19,17 @@ import { useFetch } from "../lib/useFetch";
 import { useToast } from "../context/ToastContext";
 import { formatCurrency, formatNumber, formatDate } from "../lib/format";
 
-// All four routes are admin-only end to end (route-level `requireRole`,
-// same as Fees/Salaries) and none of them paginate — see api/reports.js
+// Sub-admin financial reports require one student on the client and server.
+// Reports do not paginate — see api/reports.js
 // for why this page uses plain `useFetch` per tab instead of
 // `useResourceList`. Each tab owns its own filter state and re-fetches on
 // change; the CSV download re-requests the same endpoint with the same
 // filters plus `format=csv` rather than being a separate action.
 
 export default function Reports() {
+  const { user } = useAuth();
+  const restricted = user?.role === "subadmin";
+  const [student, setStudent] = useState(null);
   const [tab, setTab] = useState("students"); // students | fee-collection | outstanding-fees | expenses
 
   return (
@@ -33,7 +39,7 @@ export default function Reports() {
           { key: "students", label: "Students" },
           { key: "fee-collection", label: "Fee Collection" },
           { key: "outstanding-fees", label: "Outstanding Fees" },
-          { key: "expenses", label: "Expenses" },
+          ...(!restricted ? [{ key: "expenses", label: "Expenses" }] : [{ key: "tests", label: "Test reports" }]),
         ].map((t) => (
           <button
             key={t.key}
@@ -47,10 +53,15 @@ export default function Reports() {
         ))}
       </div>
 
+      {restricted && ["fee-collection", "outstanding-fees"].includes(tab) && <div className="mb-5 space-y-2">
+        <p className="text-sm text-ink-600">Select a student to view their fee report.</p>
+        <StudentSelector value={student} onChange={setStudent} />
+      </div>}
+      {tab === "tests" && <Link to="/tests" className="text-sm text-brass-600 underline">Open test reports and results</Link>}
       {tab === "students" && <StudentsReportTab />}
-      {tab === "fee-collection" && <FeeCollectionReportTab />}
-      {tab === "outstanding-fees" && <OutstandingFeesReportTab />}
-      {tab === "expenses" && <ExpensesReportTab />}
+      {tab === "fee-collection" && (!restricted || student) && <FeeCollectionReportTab key={student?._id || "all"} student={restricted ? student?._id : undefined} />}
+      {tab === "outstanding-fees" && (!restricted || student) && <OutstandingFeesReportTab key={student?._id || "all"} student={restricted ? student?._id : undefined} />}
+      {!restricted && tab === "expenses" && <ExpensesReportTab />}
     </AppLayout>
   );
 }
@@ -189,11 +200,11 @@ function StudentsReportTab() {
 // Fee collection report
 // ─────────────────────────────────────────────────────────────────────────
 
-function FeeCollectionReportTab() {
+function FeeCollectionReportTab({ student }) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
-  const { data, loading, error } = useFetch(() => fetchFeeCollectionReport({ from, to }), [from, to]);
+  const { data, loading, error } = useFetch(() => fetchFeeCollectionReport({ from, to, ...(student ? { student } : {}) }), [from, to, student]);
 
   const columns = [
     { key: "receiptNumber", header: "Receipt #", cellClassName: "font-tabular text-ink-700" },
@@ -227,13 +238,13 @@ function FeeCollectionReportTab() {
         <DownloadButton
           disabled={loading}
           onDownload={() =>
-            downloadReportCsv("/reports/fee-collection", { from, to }, "fee-collection-report.csv")
+            downloadReportCsv("/reports/fee-collection", { from, to, ...(student ? { student } : {}) }, "fee-collection-report.csv")
           }
         />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
-        <StatCard label="Total collected" value={formatCurrency(data?.total || 0)} tone="moss" />
+        <StatCard label={student ? "Student payments" : "Total collected"} value={formatCurrency(data?.total || 0)} tone="moss" />
         <StatCard label="Payments" value={formatNumber(data?.count || 0)} />
       </div>
 
@@ -256,8 +267,8 @@ function FeeCollectionReportTab() {
 // filter bar.
 // ─────────────────────────────────────────────────────────────────────────
 
-function OutstandingFeesReportTab() {
-  const { data, loading, error } = useFetch(() => fetchOutstandingFeesReport(), []);
+function OutstandingFeesReportTab({ student }) {
+  const { data, loading, error } = useFetch(() => fetchOutstandingFeesReport(student ? { student } : {}), [student]);
 
   const columns = [
     {
@@ -298,12 +309,12 @@ function OutstandingFeesReportTab() {
       <div className="flex items-center justify-end mb-4">
         <DownloadButton
           disabled={loading}
-          onDownload={() => downloadReportCsv("/reports/outstanding-fees", {}, "outstanding-fees-report.csv")}
+          onDownload={() => downloadReportCsv("/reports/outstanding-fees", student ? { student } : {}, "outstanding-fees-report.csv")}
         />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
-        <StatCard label="Total outstanding" value={formatCurrency(data?.totalOutstanding || 0)} tone="brick" />
+        <StatCard label={student ? "Student outstanding" : "Total outstanding"} value={formatCurrency(data?.totalOutstanding || 0)} tone="brick" />
         <StatCard label="Invoices" value={formatNumber(data?.count || 0)} />
       </div>
 

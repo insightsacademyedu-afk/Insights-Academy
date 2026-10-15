@@ -8,6 +8,16 @@ const { login } = vi.hoisted(() => ({ login: vi.fn() }));
 vi.mock("../context/AuthContext", () => ({ useAuth: () => ({ login, status: "anonymous" }) }));
 beforeEach(() => { login.mockReset(); login.mockResolvedValue({}); });
 
+test("sub-admin submits its own login role", async () => {
+  render(<MemoryRouter><Login /></MemoryRouter>);
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("radio", { name: "Sub-admin" }));
+  await user.type(screen.getByLabelText("Username, email or phone number"), "reception");
+  await user.type(screen.getByLabelText("Password", { selector: "input" }), "OfficePassword123!");
+  await user.click(screen.getByRole("button", { name: "Sign in", exact: true }));
+  await waitFor(() => expect(login).toHaveBeenCalledWith("reception", "OfficePassword123!", "subadmin"));
+});
+
 test("password recovery is only shown for the Admin option", async () => {
   render(<MemoryRouter><Login /></MemoryRouter>);
   const user = userEvent.setup();

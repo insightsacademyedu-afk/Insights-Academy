@@ -96,6 +96,18 @@ beforeEach(() => {
 });
 
 describe("Students list — admin", () => {
+  it("allows sub-admin registration and loads individual details before editing without archive access", async () => {
+    mockUseAuth.mockReturnValue({ user: { role: "subadmin" }, isAdmin: false });
+    studentsApi.getOne.mockResolvedValue({ student: { ...ADMIN_STUDENT, feeDetails: { monthlyTuition: 8500 } }, currentAssignment: null });
+    const user = userEvent.setup();
+    renderStudents();
+    await screen.findByText("Amina Khan");
+    expect(screen.getByRole("button", { name: "New student" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Edit", exact: true }));
+    await waitFor(() => expect(studentsApi.getOne).toHaveBeenCalledWith("stu1"));
+    expect(await screen.findByLabelText("Monthly tuition")).toHaveValue(8500);
+  });
   it("renders students with the guardian column", async () => {
     renderStudents();
 

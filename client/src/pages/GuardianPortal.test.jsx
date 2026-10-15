@@ -20,8 +20,8 @@ beforeEach(() => {
 });
 const mount = () => render(<MemoryRouter><GuardianPortal /></MemoryRouter>);
 
-test("guardian navigation contains only their dashboard and account", () => {
-  expect(NAV_SECTIONS.flatMap(section => section.items).filter(item => canAccessNav(item, "guardian")).map(item => item.to).sort()).toEqual(["/", "/account"]);
+test("guardian navigation contains their dashboard, account and notification inbox", () => {
+  expect(NAV_SECTIONS.flatMap(section => section.items).filter(item => canAccessNav(item, "guardian")).map(item => item.to).sort()).toEqual(["/", "/account", "/notifications"]);
 });
 
 test("guardian can switch children and view only the selected child's reports and payments", async () => {

@@ -36,6 +36,7 @@ vi.mock("../api/dashboard", () => ({
 vi.mock("../api/tests", () => ({
   testsApi: {
     list: vi.fn(),
+    teachers: vi.fn(),
     getOne: vi.fn(),
     create: vi.fn(),
     roster: vi.fn(),
@@ -151,6 +152,17 @@ describe("Teacher creating a test", () => {
 });
 
 describe("Admin creating a test", () => {
+  it("uses only the teacher-name lookup for sub-admins and enables test creation", async () => {
+    mockUseAuth.mockReturnValue({ isAdmin: false, user: { role: "subadmin" } });
+    testsApi.teachers.mockResolvedValue({ items: [TEACHER] });
+    const user = userEvent.setup();
+    renderTests();
+    await waitFor(() => expect(testsApi.teachers).toHaveBeenCalled());
+    expect(staffApi.list).not.toHaveBeenCalled();
+    expect(teacherAssignmentsApi.mine).not.toHaveBeenCalled();
+    await user.click(await screen.findByRole("button", { name: /new test/i }));
+    expect(screen.getByRole("combobox", { name: /Teacher/ })).toBeInTheDocument();
+  });
   beforeEach(() => {
     mockUseAuth.mockReturnValue({ isAdmin: true, user: { role: "admin" } });
   });

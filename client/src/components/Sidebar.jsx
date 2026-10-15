@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { Lock } from "lucide-react";
-import { NAV_SECTIONS, CURRENT_PHASE, canAccessNav } from "../lib/nav";
+import { getNavSections, CURRENT_PHASE, canAccessNav } from "../lib/nav";
 import { useAuth } from "../context/AuthContext";
 import { useAcademy } from "../context/academy";
 import AcademyBrand from "./AcademyBrand";
@@ -18,7 +18,7 @@ export default function Sidebar() {
       </div>
 
       <nav {...menuScroll} aria-label="Main navigation" className="min-h-0 flex-1 overflow-y-auto px-3 py-5 space-y-6">
-        {NAV_SECTIONS.map((section) => {
+        {getNavSections(user?.role).map((section) => {
           const items = section.items.filter((item) => canAccessNav(item, user?.role));
           if (!items.length) return null;
           return (

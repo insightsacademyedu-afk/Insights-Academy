@@ -38,6 +38,7 @@ function uniqueById(list) {
 
 export default function Tests() {
   const { isAdmin, user } = useAuth();
+  const canManageTests = isAdmin || user?.role === "subadmin";
   const toast = useToast();
 
   // class/section/subject/academicSession are never populated on a Test
@@ -74,7 +75,7 @@ export default function Tests() {
         classesApi.list({ limit: 500 }),
         sectionsApi.list({ limit: 1000 }),
         subjectsApi.list({ limit: 200 }),
-        staffApi.list({ limit: 300 }),
+        user?.role === "subadmin" ? testsApi.teachers() : staffApi.list({ limit: 300 }),
       ]);
       if (cancelled) return;
       const current = sessionsRes.items.find((s) => s.isCurrent);
@@ -113,7 +114,7 @@ export default function Tests() {
       });
     }
 
-    (isAdmin ? loadAdminLookups() : loadTeacherLookups()).catch(() => {
+    (canManageTests ? loadAdminLookups() : loadTeacherLookups()).catch(() => {
       if (!cancelled) setLookups((l) => ({ ...l, loading: false }));
       toast.error("Couldn't load some reference data for the Tests page.");
     });
@@ -122,7 +123,7 @@ export default function Tests() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]);
+  }, [canManageTests, user?.role]);
 
   const list = useResourceList(testsResource, {
     academicSession: sessionFilter,
@@ -143,7 +144,7 @@ export default function Tests() {
   const sessionName = (id) => lookups.sessions.find((s) => s._id === id)?.name || "—";
   const staffName = (id) => lookups.staffById[id]?.fullName || "—";
 
-  const canCreate = isAdmin || lookups.assignments.length > 0;
+  const canCreate = canManageTests || lookups.assignments.length > 0;
 
   const columns = [
     { key: "title", header: "Title", render: (row) => <span className="font-medium text-ink-900">{row.title}</span> },
@@ -165,7 +166,7 @@ export default function Tests() {
       cellClassName: "font-tabular",
       render: (row) => `${row.passingMarks} / ${row.maxMarks}`,
     },
-    ...(isAdmin
+    ...(canManageTests
       ? [{ key: "createdBy", header: "Created by", render: (row) => staffName(row.createdBy) }]
       : []),
     { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status} /> },
@@ -230,7 +231,7 @@ export default function Tests() {
 
         <div className="flex-1" />
 
-        {!isAdmin && !lookups.loading && lookups.assignments.length === 0 && (
+        {!canManageTests && !lookups.loading && lookups.assignments.length === 0 && (
           <span className="text-xs text-ink-500">No class assignments yet — ask an admin to assign you first.</span>
         )}
         <Button onClick={() => setNewOpen(true)} disabled={!canCreate}>
@@ -250,7 +251,7 @@ export default function Tests() {
         rows={list.items}
         loading={list.loading}
         emptyMessage={
-          isAdmin
+          canManageTests
             ? "No tests yet."
             : "No tests yet — create one for a class/section/subject you're assigned to."
         }
@@ -260,7 +261,7 @@ export default function Tests() {
       <NewTestModal
         open={newOpen}
         onClose={() => setNewOpen(false)}
-        isAdmin={isAdmin}
+        canManageTests={canManageTests}
         sessions={lookups.sessions}
         subjects={lookups.subjects}
         staffList={lookups.staffList}
@@ -275,7 +276,7 @@ export default function Tests() {
       <TestDetailModal
         testRow={detailTarget}
         onClose={() => setDetailTarget(null)}
-        isAdmin={isAdmin}
+        canManageTests={canManageTests}
         currentStaffId={user?.staffId}
         classNameOf={className}
         sectionNameOf={sectionName}
@@ -307,9 +308,9 @@ const EMPTY_TEACHER_FORM = {
   testDate: "",
 };
 
-function NewTestModal({ open, onClose, isAdmin, sessions, subjects, staffList, assignments, defaultSession, onSaved }) {
+function NewTestModal({ open, onClose, canManageTests, sessions, subjects, staffList, assignments, defaultSession, onSaved }) {
   const toast = useToast();
-  const [form, setForm] = useState(isAdmin ? EMPTY_ADMIN_FORM : EMPTY_TEACHER_FORM);
+  const [form, setForm] = useState(canManageTests ? EMPTY_ADMIN_FORM : EMPTY_TEACHER_FORM);
   const [classesForSession, setClassesForSession] = useState([]);
   const [sectionsForClass, setSectionsForClass] = useState([]);
   const [error, setError] = useState("");
@@ -319,17 +320,17 @@ function NewTestModal({ open, onClose, isAdmin, sessions, subjects, staffList, a
     if (!open) return;
     setError("");
     setForm(
-      isAdmin
+      canManageTests
         ? { ...EMPTY_ADMIN_FORM, academicSession: defaultSession || "" }
         : { ...EMPTY_TEACHER_FORM }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, isAdmin]);
+  }, [open, canManageTests]);
 
   // Admin path only: classes depend on session, sections depend on class —
   // same dependent-dropdown chain as AssignmentFormModal in Staff.jsx.
   useEffect(() => {
-    if (!isAdmin || !form.academicSession) {
+    if (!canManageTests || !form.academicSession) {
       setClassesForSession([]);
       return;
     }
@@ -337,10 +338,10 @@ function NewTestModal({ open, onClose, isAdmin, sessions, subjects, staffList, a
       .list({ limit: 200, academicSession: form.academicSession, status: "active" })
       .then((res) => setClassesForSession(res.items))
       .catch(() => {});
-  }, [isAdmin, form.academicSession]);
+  }, [canManageTests, form.academicSession]);
 
   useEffect(() => {
-    if (!isAdmin || !form.class) {
+    if (!canManageTests || !form.class) {
       setSectionsForClass([]);
       return;
     }
@@ -348,7 +349,7 @@ function NewTestModal({ open, onClose, isAdmin, sessions, subjects, staffList, a
       .list({ limit: 200, class: form.class, status: "active" })
       .then((res) => setSectionsForClass(res.items))
       .catch(() => {});
-  }, [isAdmin, form.class]);
+  }, [canManageTests, form.class]);
 
   const selectedAssignment = useMemo(
     () => assignments.find((a) => a._id === form.assignmentId) || null,
@@ -366,7 +367,7 @@ function NewTestModal({ open, onClose, isAdmin, sessions, subjects, staffList, a
         passingMarks: Number(form.passingMarks || 0),
         testDate: form.testDate,
       };
-      if (isAdmin) {
+      if (canManageTests) {
         body.createdBy = form.createdBy;
         body.class = form.class;
         body.section = form.section;
@@ -402,7 +403,7 @@ function NewTestModal({ open, onClose, isAdmin, sessions, subjects, staffList, a
           </div>
         )}
 
-        {isAdmin ? (
+        {canManageTests ? (
           <>
             <Field label="Teacher (createdBy)" required>
               <Select required value={form.createdBy} onChange={(e) => setForm({ ...form, createdBy: e.target.value })}>
@@ -553,7 +554,7 @@ function NewTestModal({ open, onClose, isAdmin, sessions, subjects, staffList, a
 function TestDetailModal({
   testRow,
   onClose,
-  isAdmin,
+  canManageTests,
   currentStaffId,
   classNameOf,
   sectionNameOf,
@@ -597,7 +598,7 @@ function TestDetailModal({
   // never even sees another teacher's test in the list this modal is
   // opened from. Kept explicit anyway, matching loadTestForMutation's own
   // server-side check, rather than assuming the list scoping always holds.
-  const canManage = isAdmin || (test && currentStaffId && String(test.createdBy) === String(currentStaffId));
+  const canManage = canManageTests || (test && currentStaffId && String(test.createdBy) === String(currentStaffId));
 
   async function handleFinalize() {
     setFinalizing(true);

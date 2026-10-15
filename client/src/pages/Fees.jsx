@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Layers, Eye, X, Printer } from "lucide-react";
 import AppLayout from "../components/AppLayout";
 import DataTable from "../components/DataTable";
@@ -13,6 +13,8 @@ import { academicSessionsApi, classesApi, sectionsApi } from "../api/academicSet
 import { useResourceList } from "../lib/useResourceList";
 import { useToast } from "../context/ToastContext";
 import { useAcademy } from "../context/academy";
+import StudentSelector from "../components/StudentSelector";
+import { useAuth } from "../context/AuthContext";
 import { formatCurrency, formatDate } from "../lib/format";
 
 // feesApi.listInvoices already returns the generic {items,...} shape, so
@@ -24,6 +26,11 @@ const INVOICE_STATUSES = ["unpaid", "partially_paid", "paid", "overdue", "waived
 const INVOICE_TYPES = ["tuition", "admission", "exam", "other"];
 
 export default function Fees() {
+  const { user } = useAuth();
+  const restricted = user?.role === "subadmin";
+  const resource = useMemo(() => restricted ? {
+    list: params => params.student ? feesApi.listInvoices(params) : Promise.resolve({ items: [], page: 1, totalPages: 1, total: 0 }),
+  } : invoicesResource, [restricted]);
   const [sessions, setSessions] = useState([]);
   const [sessionFilter, setSessionFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -41,7 +48,7 @@ export default function Fees() {
       .catch(() => {});
   }, []);
 
-  const list = useResourceList(invoicesResource, {
+  const list = useResourceList(resource, {
     academicSession: sessionFilter,
     status: statusFilter,
     invoiceType: typeFilter,
@@ -114,9 +121,10 @@ export default function Fees() {
   ];
 
   return (
-    <AppLayout title="Fees">
+    <AppLayout title={restricted ? "Student invoices" : "Fees"}>
+      {restricted && <p className="mb-4 text-sm text-ink-600">Select one student to view their invoices and payment history. Invoice access is read-only.</p>}
       <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
-        <StudentFilterInput value={studentFilter} onChange={setStudentFilter} />
+        <StudentSelector value={studentFilter} onChange={setStudentFilter} />
 
         <select
           value={sessionFilter}
@@ -160,14 +168,14 @@ export default function Fees() {
 
         <div className="flex-1" />
 
-        <Button variant="ghost" onClick={() => setBulkOpen(true)}>
+        {!restricted && <><Button variant="ghost" onClick={() => setBulkOpen(true)}>
           <Layers size={15} />
           Bulk generate
         </Button>
         <Button onClick={() => setNewInvoiceOpen(true)}>
           <Plus size={15} />
           New invoice
-        </Button>
+        </Button></>}
       </div>
 
       {list.error && (
@@ -178,9 +186,9 @@ export default function Fees() {
 
       <DataTable
         columns={columns}
-        rows={list.items}
+        rows={restricted ? list.items.filter(row => String(row.student?._id || row.student) === studentFilter?._id) : list.items}
         loading={list.loading}
-        emptyMessage="No invoices yet — generate one for a student, or use bulk generate for a whole class/section."
+        emptyMessage={restricted ? (studentFilter ? "No invoices for this student." : "Select a student to view invoices.") : "No invoices yet — generate one for a student, or use bulk generate for a whole class/section."}
       />
       <Pagination page={list.page} totalPages={list.totalPages} total={list.total} onChange={list.setPage} />
 
@@ -205,90 +213,13 @@ export default function Fees() {
 
       <InvoiceDetailModal
         invoiceRow={detailTarget}
+        readOnly={restricted}
         onClose={() => setDetailTarget(null)}
         onChanged={() => {
           list.refetch();
         }}
       />
     </AppLayout>
-  );
-}
-
-// A small debounced student search-select. Not a shared component yet —
-// this is the first page that needs to pick a student out of a paginated
-// list rather than showing the whole Students screen, so it's kept local
-// until a second page needs the same thing.
-function StudentFilterInput({ value, onChange }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
-    const handle = setTimeout(() => {
-      studentsApi
-        .list({ search: query, limit: 8, status: "active" })
-        .then((res) => setResults(res.items))
-        .catch(() => setResults([]));
-    }, 250);
-    return () => clearTimeout(handle);
-  }, [query]);
-
-  if (value) {
-    return (
-      <div className="flex items-center gap-1.5 rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800">
-        <span className="font-medium text-ink-900">{value.fullName}</span>
-        <span className="text-ink-400">({value.admissionNumber})</span>
-        <button
-          onClick={() => {
-            onChange(null);
-            setQuery("");
-          }}
-          className="ml-1 text-ink-400 hover:text-ink-900"
-          aria-label="Clear student filter"
-        >
-          <X size={13} />
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative w-56">
-      <input
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          setOpen(true);
-        }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="Filter by student…"
-        className="w-full rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-950 outline-none focus:border-ink-700 focus:ring-2 focus:ring-ink-700/10"
-      />
-      {open && results.length > 0 && (
-        <div className="absolute z-20 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-ink-200 bg-surface shadow-lg shadow-ink-950/10">
-          {results.map((s) => (
-            <button
-              key={s._id}
-              type="button"
-              onMouseDown={() => {
-                onChange(s);
-                setQuery("");
-                setOpen(false);
-              }}
-              className="block w-full px-3 py-2 text-left text-sm hover:bg-paper-100"
-            >
-              <div className="font-medium text-ink-900">{s.fullName}</div>
-              <div className="text-xs text-ink-500">{s.admissionNumber}</div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -753,7 +684,7 @@ function BulkGenerateModal({ open, onClose, sessions, defaultSession, onDone }) 
   );
 }
 
-function InvoiceDetailModal({ invoiceRow, onClose, onChanged }) {
+function InvoiceDetailModal({ invoiceRow, onClose, onChanged, readOnly = false }) {
   const toast = useToast();
   const { settings } = useAcademy();
   const [data, setData] = useState(null); // {invoice, payments}
@@ -782,7 +713,7 @@ function InvoiceDetailModal({ invoiceRow, onClose, onChanged }) {
 
   const invoice = data?.invoice;
   const outstanding = invoice && invoice.status !== "waived" ? Math.max(0, invoice.totalAmount - invoice.amountPaid) : 0;
-  const canPay = invoice && !["paid", "waived"].includes(invoice.status);
+  const canPay = !readOnly && invoice && !["paid", "waived"].includes(invoice.status);
 
   return (
     <Modal
@@ -838,7 +769,7 @@ function InvoiceDetailModal({ invoiceRow, onClose, onChanged }) {
 
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-xs font-medium tracking-wide text-ink-600">PAYMENTS</h3>
-            {invoice.status === "paid" && invoice.amountPaid > 0 && <Button variant="ghost" onClick={() => setPaymentOpen(true)}>Adjust payment</Button>}
+            {!readOnly && invoice.status === "paid" && invoice.amountPaid > 0 && <Button variant="ghost" onClick={() => setPaymentOpen(true)}>Adjust payment</Button>}
             {canPay && (
               <div className="flex gap-2">
                 <Button variant="ghost" className="!py-1 !px-2.5 !text-xs" onClick={() => setWaiveOpen(true)}>

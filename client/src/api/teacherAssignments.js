@@ -3,6 +3,9 @@ import { createResourceApi } from "./resource";
 
 export const teacherAssignmentsApi = {
   ...createResourceApi("/teacher-assignments"),
+  createBulk(body) {
+    return api.post("/teacher-assignments/bulk", body).then((r) => r.data);
+  },
   // GET /teacher-assignments/mine — { items } (no pagination — a single
   // teacher's own assignment list is never large enough to need it,
   // matches teacherAssignmentRoutes.js exactly). Hard-scoped server-side

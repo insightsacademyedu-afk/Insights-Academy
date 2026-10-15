@@ -4,10 +4,10 @@ import bcrypt from "bcryptjs";
 
 const { Schema } = mongoose;
 
-// Roles are an enum today (admin/staff/guardian) but the schema is written so
+// Roles are an enum today (admin/subadmin/staff/guardian) but the schema is written so
 // new roles (accountant, principal, receptionist, parent...) can be
 // added later without changing the shape of the collection.
-const ROLES = ["admin", "staff", "guardian"];
+const ROLES = ["admin", "subadmin", "staff", "guardian"];
 
 const userSchema = new Schema(
   {

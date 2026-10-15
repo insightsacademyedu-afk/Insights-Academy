@@ -3,7 +3,7 @@ import { config } from "../config/env.js";
 
 let transporter;
 
-async function sendWithResend({ recipient, code }) {
+async function sendWithResend({ recipient, subject, text }) {
   if (!config.resend.from) throw new Error("RESEND_FROM is not configured");
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -15,8 +15,8 @@ async function sendWithResend({ recipient, code }) {
     body: JSON.stringify({
       from: config.resend.from,
       to: [recipient],
-      subject: "Academy Management password reset code",
-      text: `Your password reset code is ${code}. It expires in 10 minutes. If you did not request this, ignore this email.`,
+      subject,
+      text,
     }),
     signal: AbortSignal.timeout(15000),
   });
@@ -37,19 +37,36 @@ function getTransporter() {
       port: config.smtp.port,
       secure: config.smtp.secure,
       auth: { user: config.smtp.user, pass: config.smtp.pass },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
     });
   }
   return transporter;
 }
 
 export async function sendPasswordResetCode({ recipient, code }) {
-  if (config.resend.apiKey) return sendWithResend({ recipient, code });
+  return sendEmail({ recipient, subject: "Academy Management password reset code",
+    text: `Your password reset code is ${code}. It expires in 10 minutes. If you did not request this, ignore this email.` });
+}
+
+export function emailIsConfigured() {
+  return Boolean(config.resend.apiKey ? config.resend.from : config.smtp.host && config.smtp.user && config.smtp.pass);
+}
+
+export async function sendNotificationEmail({ recipient, title, message }) {
+  return sendEmail({ recipient, subject: `Academy notification: ${title.replace(/[\r\n]/g, " ")}`,
+    text: `${message}\n\nView your academy notifications: ${config.clientUrl}/notifications` });
+}
+
+async function sendEmail({ recipient, subject, text }) {
+  if (config.resend.apiKey) return sendWithResend({ recipient, subject, text });
 
   const sender = config.smtp.from || config.smtp.user;
   await getTransporter().sendMail({
     from: sender,
     to: recipient,
-    subject: "Academy Management password reset code",
-    text: `Your password reset code is ${code}. It expires in 10 minutes. If you did not request this, ignore this email.`,
+    subject,
+    text,
   });
 }

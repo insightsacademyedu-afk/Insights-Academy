@@ -2,6 +2,7 @@ import { config } from "../config/env.js";
 import { verifyToken } from "../utils/token.js";
 import Staff from "../models/Staff.js";
 import User from "../models/User.js";
+import { canAccessAsSubAdmin } from "../utils/subAdminAccess.js";
 
 // Verifies the JWT cookie, then re-checks the user record on every request
 // so that a deactivated account or a bumped tokenVersion (forced logout)
@@ -38,6 +39,10 @@ export async function requireAuth(req, res, next) {
     // teacher-scoped endpoints. Their dedicated read-only API checks child ownership.
     if (user.role === "guardian" && !["/api/auth", "/api/guardian-portal"].includes(req.baseUrl)) {
       return res.status(403).json({ message: "Guardian accounts can only access their own portal" });
+    }
+
+    if (user.role === "subadmin" && !canAccessAsSubAdmin(req)) {
+      return res.status(403).json({ message: "Sub-admin access is limited to students, tests and individual student invoices and reports. Select one student for fee records." });
     }
 
     req.user = user; // full mongoose doc, downstream middleware/controllers can use it

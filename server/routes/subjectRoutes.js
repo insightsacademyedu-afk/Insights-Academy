@@ -19,10 +19,11 @@ const controller = createCrudController(Subject, {
   duplicateMessage: "A subject with this code already exists",
 });
 
-router.use(requireAuth, requireRole("admin"));
+router.use(requireAuth, requireRole("admin", "subadmin"));
 
 router.get("/", controller.list);
 router.get("/:id", controller.getOne);
+router.use(requireRole("admin"));
 router.post("/", controller.create);
 router.put("/:id", controller.update);
 router.delete("/:id", sensitiveActionRateLimiter, archiveResource("subject"));

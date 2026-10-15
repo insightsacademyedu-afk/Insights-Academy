@@ -9,11 +9,11 @@ import {
 
 const router = Router();
 
-router.use(requireAuth, requireRole("admin"));
+router.use(requireAuth, requireRole("admin", "subadmin"));
 
 router.get("/students", studentsReport);
 router.get("/fee-collection", feeCollectionReport);
 router.get("/outstanding-fees", outstandingFeesReport);
-router.get("/expenses", expensesReport);
+router.get("/expenses", requireRole("admin"), expensesReport);
 
 export default router;

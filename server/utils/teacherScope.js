@@ -104,7 +104,7 @@ export async function isStudentAccessibleByTeacher(staffId, studentId) {
 export function requireStudentAccess(paramName = "id") {
   return async (req, res, next) => {
     try {
-      if (req.user.role === "admin") return next();
+      if (["admin", "subadmin"].includes(req.user.role)) return next();
       if (!req.user.staffId) {
         return res.status(403).json({ message: "No staff profile linked to this account" });
       }
@@ -130,7 +130,7 @@ export function requireStudentAccess(paramName = "id") {
 export function requireTeacherScope(extract) {
   return async (req, res, next) => {
     try {
-      if (req.user.role === "admin") return next();
+      if (["admin", "subadmin"].includes(req.user.role)) return next();
 
       if (!req.user.staffId) {
         return res.status(403).json({ message: "No staff profile linked to this account" });

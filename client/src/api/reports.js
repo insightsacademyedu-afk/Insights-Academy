@@ -18,8 +18,8 @@ export function fetchFeeCollectionReport(params = {}) {
   return api.get("/reports/fee-collection", { params }).then((r) => r.data);
 }
 
-export function fetchOutstandingFeesReport() {
-  return api.get("/reports/outstanding-fees").then((r) => r.data);
+export function fetchOutstandingFeesReport(params = {}) {
+  return api.get("/reports/outstanding-fees", { params }).then((r) => r.data);
 }
 
 export function fetchExpensesReport(params = {}) {

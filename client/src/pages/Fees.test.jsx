@@ -115,6 +115,27 @@ beforeEach(() => {
 });
 
 describe("Fees list", () => {
+  it("requires selecting a student for sub-admin invoice reads and hides payment actions", async () => {
+    mockUseAuth.mockReturnValue({ user: { role: "subadmin" }, isAdmin: false });
+    const student = { _id: "student1", fullName: "Amina Khan", admissionNumber: "A-001" };
+    studentsApi.list.mockResolvedValue({ items: [student] });
+    feesApi.listInvoices.mockResolvedValue({ items: [{ ...UNPAID_INVOICE, student }], page: 1, totalPages: 1, total: 1 });
+    feesApi.getInvoice.mockResolvedValue({ invoice: { ...UNPAID_INVOICE, student }, payments: [] });
+    const user = userEvent.setup();
+    renderFees();
+    await screen.findByText("Select a student to view invoices.");
+    expect(feesApi.listInvoices).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "New invoice" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Bulk generate" })).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Search students"), "Amina");
+    await user.click(await screen.findByRole("button", { name: /Amina Khan A-001/ }));
+    await waitFor(() => expect(feesApi.listInvoices).toHaveBeenCalledWith(expect.objectContaining({ student: "student1" })));
+    await user.click(await screen.findByLabelText("View invoice"));
+    await screen.findByText("No payments recorded yet.");
+    expect(screen.queryByRole("button", { name: "Record payment" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Waive" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Adjust payment" })).not.toBeInTheDocument();
+  });
   it("renders invoices with a computed outstanding column, and hides it for a waived invoice", async () => {
     renderFees();
 

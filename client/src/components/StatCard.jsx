@@ -7,7 +7,7 @@ export default function StatCard({ label, value, sub, tone = "ink" }) {
   };
 
   return (
-    <div className="min-w-0 rounded-lg border border-ink-200 bg-paper-50 px-5 py-4">
+    <div className="depth-card min-w-0 rounded-lg border border-ink-200 bg-paper-50 px-5 py-4">
       <div className="text-xs font-medium text-ink-500 tracking-wide">{label}</div>
       <div className={`font-tabular text-xl leading-tight xl:text-2xl [overflow-wrap:anywhere] mt-1.5 ${toneClasses[tone]}`}>{value}</div>
       {sub && <div className="text-xs text-ink-500 mt-1">{sub}</div>}

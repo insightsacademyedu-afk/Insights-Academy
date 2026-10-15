@@ -17,7 +17,7 @@ import { getTeacherClassSectionPairs, buildStudentAssignmentFilterFromPairs } fr
 // route can accidentally leak fee data to a teacher by forgetting a check.
 function shapeForRole(studentDoc, role) {
   const student = studentDoc.toJSON ? studentDoc.toJSON() : studentDoc;
-  if (role === "admin") return student;
+  if (["admin", "subadmin"].includes(role)) return student;
 
   const { feeDetails, totalPayable, cnicOrBForm, ...rest } = student;
   return rest;
@@ -66,7 +66,7 @@ export async function list(req, res, next) {
     if (req.query.class) requestedAssignmentScope.class = req.query.class;
     if (req.query.section) requestedAssignmentScope.section = req.query.section;
 
-    if (req.user.role === "admin") {
+    if (["admin", "subadmin"].includes(req.user.role)) {
       if (Object.keys(requestedAssignmentScope).length > 0) {
         const studentIds = await StudentClassAssignment.find({
           ...requestedAssignmentScope,
@@ -76,7 +76,7 @@ export async function list(req, res, next) {
         filter._id = { $in: studentIds };
       }
       const [items, total] = await Promise.all([
-        Student.find(filter).populate("guardian").sort(sort).skip(skip).limit(limit),
+        Student.find(filter).select(req.user.role === "subadmin" ? "-feeDetails" : "").lean(req.user.role === "subadmin").populate("guardian").sort(sort).skip(skip).limit(limit),
         Student.countDocuments(filter),
       ]);
       return res.json(paginatedResponse(items, total, page, limit));

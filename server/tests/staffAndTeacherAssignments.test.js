@@ -1,10 +1,47 @@
 import mongoose from "mongoose";
 import app from "../app.js";
 import Staff from "../models/Staff.js";
+import Class from "../models/Class.js";
+import Section from "../models/Section.js";
+import Subject from "../models/Subject.js";
+import TeacherClassAssignment from "../models/TeacherClassAssignment.js";
 import { createAdminSession, createTeacherSession, withCsrf } from "./helpers/authHelpers.js";
 import { createAcademicChain } from "./helpers/fixtures.js";
 
 describe("Phase 3 — Staff & Teacher Assignment engine", () => {
+  test("bulk assignments save multiple classes and subjects, skip duplicates, and remain scoped to the teacher", async () => {
+    const { agent, csrfToken } = await createAdminSession(app);
+    const teacher = await createTeacherSession(app);
+    const { klass, section, subject, session } = await createAcademicChain();
+    const otherClass = await Class.create({ name: "9th", academicSession: session._id });
+    const otherSection = await Section.create({ name: "B", class: otherClass._id });
+    const otherSubject = await Subject.create({ name: "English", code: "ENG" });
+    const assignments = [[klass, section], [otherClass, otherSection]].flatMap(([c, s]) =>
+      [subject, otherSubject].map((sub) => ({ class: String(c._id), section: String(s._id), subject: String(sub._id) }))
+    );
+    const body = { teacher: String(teacher.staff._id), academicSession: String(session._id), assignments };
+    const first = await withCsrf(agent.post("/api/teacher-assignments/bulk").send(body), csrfToken);
+    expect(first.status).toBe(201);
+    expect(first.body).toEqual({ created: 4, skipped: 0 });
+    const again = await withCsrf(agent.post("/api/teacher-assignments/bulk").send(body), csrfToken);
+    expect(again.body).toEqual({ created: 0, skipped: 4 });
+    expect((await teacher.agent.get("/api/teacher-assignments/mine")).body.items).toHaveLength(4);
+    expect((await withCsrf(teacher.agent.post("/api/teacher-assignments/bulk").send(body), teacher.csrfToken)).status).toBe(403);
+  });
+
+  test("invalid bulk assignment rolls back the entire selection", async () => {
+    const { agent, csrfToken } = await createAdminSession(app);
+    const { klass, section, subject, session } = await createAcademicChain();
+    const staff = await Staff.create({ fullName: "Bulk Teacher" });
+    const good = { class: String(klass._id), section: String(section._id), subject: String(subject._id) };
+    const res = await withCsrf(agent.post("/api/teacher-assignments/bulk").send({
+      teacher: String(staff._id), academicSession: String(session._id),
+      assignments: [good, { ...good, section: String(new mongoose.Types.ObjectId()) }],
+    }), csrfToken);
+    expect(res.status).toBe(400);
+    expect(await TeacherClassAssignment.countDocuments({ teacher: staff._id })).toBe(0);
+  });
+
   test("admin creates a Staff profile, then create-login issues a working staff login", async () => {
     const { agent, csrfToken } = await createAdminSession(app);
 

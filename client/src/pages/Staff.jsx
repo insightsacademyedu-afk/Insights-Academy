@@ -693,11 +693,19 @@ function AssignmentFormModal({ open, onClose, editing, sessions, defaultSession,
   const [classesForSession, setClassesForSession] = useState([]);
   const [sectionsForClass, setSectionsForClass] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [selectedClasses, setSelectedClasses] = useState([]);
+  const [selectedSections, setSelectedSections] = useState({});
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
+  const [bulkSections, setBulkSections] = useState([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
 
   // Reset form + load static dropdown data whenever the modal opens.
   useEffect(() => {
     if (!open) return;
     setError("");
+    setSelectedClasses([]);
+    setSelectedSections({});
+    setSelectedSubjects([]);
     if (editing) {
       setForm({
         teacher: editing.teacher?._id || editing.teacher || "",
@@ -724,15 +732,28 @@ function AssignmentFormModal({ open, onClose, editing, sessions, defaultSession,
 
   // Classes depend on the chosen session.
   useEffect(() => {
+    let cancelled = false;
+    setClassesForSession([]);
+    setBulkSections([]);
     if (!form.academicSession) {
-      setClassesForSession([]);
+      setLoadingOptions(false);
       return;
     }
-    classesApi
-      .list({ limit: 200, academicSession: form.academicSession, status: "active" })
-      .then((res) => setClassesForSession(res.items))
-      .catch(() => {});
-  }, [form.academicSession]);
+    setLoadingOptions(true);
+    classesApi.list({ limit: 200, academicSession: form.academicSession, status: "active" })
+      .then(async (res) => {
+        const sections = await Promise.all(res.items.map((c) =>
+          sectionsApi.list({ limit: 200, class: c._id, status: "active" })
+            .then((result) => result.items.map((s) => ({ ...s, classId: c._id })))
+        ));
+        if (cancelled) return;
+        setClassesForSession(res.items);
+        setBulkSections(sections.flat());
+      })
+      .catch((err) => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setLoadingOptions(false); });
+    return () => { cancelled = true; };
+  }, [form.academicSession, open]);
 
   // Sections depend on the chosen class.
   useEffect(() => {
@@ -748,6 +769,11 @@ function AssignmentFormModal({ open, onClose, editing, sessions, defaultSession,
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!editing && (!selectedClasses.length || !selectedSubjects.length ||
+        selectedClasses.some((id) => !selectedSections[id]?.length))) {
+      setError("Select at least one class, a section for each selected class, and at least one subject.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -755,8 +781,16 @@ function AssignmentFormModal({ open, onClose, editing, sessions, defaultSession,
         await teacherAssignmentsApi.update(editing._id, form);
         toast.success("Assignment updated");
       } else {
-        await teacherAssignmentsApi.create(form);
-        toast.success("Assignment created");
+        const assignments = selectedClasses.flatMap((classId) =>
+          selectedSections[classId].flatMap((section) =>
+            selectedSubjects.map((subject) => ({ class: classId, section, subject }))
+          )
+        );
+        if (assignments.length > 500) throw new Error("Select fewer classes, sections, or subjects (maximum 500 assignments per save).");
+        const result = await teacherAssignmentsApi.createBulk({
+          teacher: form.teacher, academicSession: form.academicSession, status: form.status, assignments,
+        });
+        toast.success(`${result.created} assignments created${result.skipped ? `; ${result.skipped} existing assignments skipped` : ""}`);
       }
       onSaved();
     } catch (err) {
@@ -767,7 +801,7 @@ function AssignmentFormModal({ open, onClose, editing, sessions, defaultSession,
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={editing ? "Edit assignment" : "New assignment"}>
+    <Modal open={open} onClose={onClose} title={editing ? "Edit assignment" : "New assignment"} width="max-w-xl">
       <form onSubmit={handleSubmit}>
         {error && (
           <div className="mb-4 rounded-md border border-brick-600/30 bg-brick-100 px-3 py-2 text-sm text-brick-600">
@@ -791,7 +825,11 @@ function AssignmentFormModal({ open, onClose, editing, sessions, defaultSession,
           <Select
             required
             value={form.academicSession}
-            onChange={(e) => setForm({ ...form, academicSession: e.target.value, class: "", section: "" })}
+            onChange={(e) => {
+              setForm({ ...form, academicSession: e.target.value, class: "", section: "" });
+              setSelectedClasses([]);
+              setSelectedSections({});
+            }}
           >
             <option value="" disabled>
               Select a session
@@ -804,6 +842,7 @@ function AssignmentFormModal({ open, onClose, editing, sessions, defaultSession,
           </Select>
         </Field>
 
+        {editing ? <>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Class" required>
             <Select
@@ -853,6 +892,55 @@ function AssignmentFormModal({ open, onClose, editing, sessions, defaultSession,
             ))}
           </Select>
         </Field>
+        </> : <>
+          <fieldset className="mb-4">
+            <legend className="text-sm font-medium text-ink-800 mb-2">Classes and sections *</legend>
+            {!form.academicSession ? <p className="text-sm text-ink-500">Pick a session first.</p> :
+              loadingOptions ? <p className="text-sm text-ink-500">Loading classes and sections…</p> :
+              !classesForSession.length ? <p className="text-sm text-ink-500">No active classes in this session.</p> :
+              <div className="max-h-64 overflow-y-auto rounded-md border border-ink-200 p-3 space-y-3">
+                {classesForSession.map((c) => {
+                  const checked = selectedClasses.includes(c._id);
+                  const sections = bulkSections.filter((s) => s.classId === c._id);
+                  return <div key={c._id}>
+                    <label className="flex items-center gap-2 text-sm font-medium text-ink-800">
+                      <input type="checkbox" checked={checked} disabled={!sections.length} onChange={() => {
+                        setSelectedClasses((ids) => checked ? ids.filter((id) => id !== c._id) : [...ids, c._id]);
+                        setSelectedSections((value) => ({ ...value, [c._id]: !checked && sections.length === 1 ? [sections[0]._id] : [] }));
+                      }} />
+                      {c.name}{!sections.length && " (no active sections)"}
+                    </label>
+                    {checked && <div className="ml-6 mt-2 flex flex-wrap gap-3">
+                      {sections.map((s) => <label key={s._id} className="flex items-center gap-2 text-sm text-ink-700">
+                        <input type="checkbox" aria-label={`${c.name} / ${s.name}`} checked={(selectedSections[c._id] || []).includes(s._id)} onChange={(e) => {
+                          const checked = e.target.checked;
+                          setSelectedSections((value) => ({ ...value, [c._id]: checked ? [...(value[c._id] || []), s._id] : value[c._id].filter((id) => id !== s._id) }));
+                        }} />
+                        {s.name}
+                      </label>)}
+                    </div>}
+                  </div>;
+                })}
+              </div>}
+          </fieldset>
+          <fieldset className="mb-4">
+            <legend className="text-sm font-medium text-ink-800 mb-2">Subjects *</legend>
+            <div className="max-h-48 overflow-y-auto rounded-md border border-ink-200 p-3 space-y-2">
+              {!subjects.length && <p className="text-sm text-ink-500">No active subjects available.</p>}
+              {subjects.map((s) => <label key={s._id} className="flex items-center gap-2 text-sm text-ink-800">
+                <input type="checkbox" checked={selectedSubjects.includes(s._id)} onChange={(e) => {
+                  const checked = e.target.checked;
+                  setSelectedSubjects((ids) => checked ? [...ids, s._id] : ids.filter((id) => id !== s._id));
+                }} />
+                {s.name} ({s.code})
+              </label>)}
+            </div>
+          </fieldset>
+          <p className="mb-4 text-sm text-ink-600">
+            Every selected subject will be assigned to every selected section. Existing assignments are skipped.
+            {` ${selectedClasses.reduce((total, id) => total + (selectedSections[id]?.length || 0), 0) * selectedSubjects.length} assignments selected.`}
+          </p>
+        </>}
 
         <Field label="Status">
           <Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
@@ -865,8 +953,8 @@ function AssignmentFormModal({ open, onClose, editing, sessions, defaultSession,
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={saving}>
-            {saving ? "Saving…" : editing ? "Save changes" : "Create assignment"}
+          <Button type="submit" disabled={saving || loadingOptions}>
+            {saving ? "Saving…" : editing ? "Save changes" : "Create assignments"}
           </Button>
         </div>
       </form>

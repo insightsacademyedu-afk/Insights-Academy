@@ -98,3 +98,9 @@ npm.cmd --prefix client run build
 ```
 
 Automated server tests use an isolated temporary MongoDB and never target the academy database.
+
+## Sub-admin accounts
+
+The main administrator can open **Sub-admins → New sub-admin** to create a separate username, email and password. Select **Sub-admin** on the sign-in page to use that account. **Manage account** lets the main admin reset its password, change its details or deactivate it; saving invalidates existing sessions.
+
+Sub-admins can register and update students, manage enrollment, create tests, enter/finalize/amend marks, and view student and test reports. Invoices and fee reports are read-only and require selecting one student. Financial CSV exports use the same student restriction. Academy-wide financial totals, unfiltered invoice lists, salaries, expenses, backups, account administration and academic setup changes are denied by the server, including direct API requests. Bulk student lists and student reports omit fee structures. Individual student profiles retain the fee details needed for registration.

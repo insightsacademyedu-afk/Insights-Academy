@@ -7,7 +7,7 @@ export default function Button({ variant = "primary", className = "", children, 
 
   return (
     <button
-      className={`inline-flex min-h-10 max-w-full items-center justify-center gap-1.5 text-center [overflow-wrap:anywhere] [&>svg]:shrink-0 rounded-md px-3.5 py-2 text-sm font-medium transition-colors ${variants[variant]} ${className}`}
+      className={`depth-button inline-flex min-h-10 max-w-full items-center justify-center gap-1.5 text-center [overflow-wrap:anywhere] [&>svg]:shrink-0 rounded-md px-3.5 py-2 text-sm font-medium transition-colors ${variants[variant]} ${className}`}
       {...props}
     >
       {children}

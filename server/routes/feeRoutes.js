@@ -12,16 +12,16 @@ import {
 
 const router = Router();
 
-// Fees are financial data — admin only, no teacher access at all.
-router.use(requireAuth, requireRole("admin"));
+// Sub-admin reads are restricted to a single student by requireAuth.
+router.use(requireAuth, requireRole("admin", "subadmin"));
 
 router.get("/invoices", listInvoices);
 router.get("/invoices/:id", getInvoice);
-router.post("/invoices", createInvoice);
-router.post("/invoices/bulk-generate", bulkGenerateTuitionInvoices);
-router.patch("/invoices/:id/waive", waiveInvoice);
+router.post("/invoices", requireRole("admin"), createInvoice);
+router.post("/invoices/bulk-generate", requireRole("admin"), bulkGenerateTuitionInvoices);
+router.patch("/invoices/:id/waive", requireRole("admin"), waiveInvoice);
 
-router.post("/payments", recordPayment);
+router.post("/payments", requireRole("admin"), recordPayment);
 
 router.get("/students/:studentId/summary", studentFeeSummary);
 

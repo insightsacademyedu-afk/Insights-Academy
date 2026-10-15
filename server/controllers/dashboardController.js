@@ -114,7 +114,7 @@ export async function gradeDistribution(req, res, next) {
     const test = await Test.findOne({ _id: testId, archivedAt: null });
     if (!test) return res.status(404).json({ message: "Test not found" });
 
-    if (req.user.role !== "admin" && (String(test.createdBy) !== String(req.user.staffId) || !await isTeacherAuthorizedFor(req.user.staffId, { classId: test.class, sectionId: test.section, subjectId: test.subject, academicSession: test.academicSession }))) {
+    if (!["admin", "subadmin"].includes(req.user.role) && (String(test.createdBy) !== String(req.user.staffId) || !await isTeacherAuthorizedFor(req.user.staffId, { classId: test.class, sectionId: test.section, subjectId: test.subject, academicSession: test.academicSession }))) {
       return res.status(403).json({ message: "You can only view results for your own tests" });
     }
 

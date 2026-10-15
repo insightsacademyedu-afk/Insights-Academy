@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { requestPasswordReset, resetPassword } from "../api/auth";
 import { Field, PasswordInput, TextInput } from "../components/FormFields";
 import AcademyBrand from "../components/AcademyBrand";
-import ThemeSwitch from "../components/ThemeSwitch";
 
 export default function Login() {
   const { login, status } = useAuth();
@@ -74,7 +73,6 @@ export default function Login() {
         <path d="M150 260C109 223 67 209 15 211l14 23c48 4 83 21 117 48C111 266 60 251 5 256l5 24c61-2 106 13 140 45 34-32 79-47 140-45l5-24c-55-5-106 10-141 26 34-27 69-44 117-48l14-23c-52-2-94 12-135 49Z" fill="currentColor" />
       </svg>
       <div className="academy-login__content">
-        <div className="mb-4 flex justify-end"><ThemeSwitch /></div>
         <header className="academy-login__brand">
           <h1 className="sr-only">Insights Academy portal</h1>
           <AcademyBrand dark />
@@ -87,7 +85,7 @@ export default function Login() {
           <fieldset className="academy-login-roles mb-5" disabled={submitting}>
 
             <div className="academy-login-roles__options">
-              {["admin", "staff", "parent"].map((role) => (
+              {["admin", "subadmin", "staff", "parent"].map((role) => (
                 <label key={role} className={`cursor-pointer rounded-md border px-2 py-2 text-center text-sm transition-colors ${loginRole === role ? "border-brass-500 bg-brass-500/10 text-ink-950" : "border-ink-200 text-ink-600 hover:border-brass-500"}`}>
                   <input
                     type="radio"
@@ -97,7 +95,7 @@ export default function Login() {
                     onChange={() => { setLoginRole(role); setError(""); }}
                     className="sr-only peer"
                   />
-                  <span className="rounded-sm peer-focus-visible:outline-2 peer-focus-visible:outline-brass-500 peer-focus-visible:outline-offset-2">{role === "admin" ? "Admin" : role === "staff" ? "Staff" : "Parent"}</span>
+                  <span className="rounded-sm peer-focus-visible:outline-2 peer-focus-visible:outline-brass-500 peer-focus-visible:outline-offset-2">{role === "admin" ? "Admin" : role === "subadmin" ? "Sub-admin" : role === "staff" ? "Staff" : "Parent"}</span>
                 </label>
               ))}
             </div>
@@ -144,7 +142,7 @@ export default function Login() {
             Forgot password?
           </button>}
           {loginRole === "parent" && <p className="academy-login-card__help">Parents and guardians: use your registered name, email or phone.<br />For a forgotten password, contact the academy administrator.</p>}
-          {loginRole === "staff" && <p className="academy-login-card__help">For a forgotten password, contact the academy administrator.</p>}
+          {["staff", "subadmin"].includes(loginRole) && <p className="academy-login-card__help">For a forgotten password, contact the academy administrator.</p>}
         </form>}
 
         {mode === "request" && <form onSubmit={requestCode} className="academy-login-card">

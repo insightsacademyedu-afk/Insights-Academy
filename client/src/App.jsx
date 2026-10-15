@@ -6,6 +6,8 @@ import { AcademyProvider } from "./context/AcademyContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 const Account = lazy(() => import("./pages/Account"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const SubAdmins = lazy(() => import("./pages/SubAdmins"));
 const ArchiveHistory = lazy(() => import("./pages/ArchiveHistory"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 import ComingSoon from "./pages/ComingSoon";
@@ -23,7 +25,9 @@ import { NAV_SECTIONS, CURRENT_PHASE } from "./lib/nav";
 
 // Real screens for modules that are wired up this phase.
 const LIVE_PAGES = {
+  "/notifications": Notifications,
   "/account": Account,
+  "/sub-admins": SubAdmins,
   "/archive": ArchiveHistory,
   "/academic-sessions": AcademicSessions,
   "/classes": Classes,
