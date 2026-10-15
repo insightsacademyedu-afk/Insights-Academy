@@ -161,7 +161,7 @@ export default function Subjects() {
               onChange={(e) => setForm({ ...form, code: e.target.value })}
             />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Max marks" required>
               <TextInput
                 type="number"
@@ -188,7 +188,7 @@ export default function Subjects() {
             </Select>
           </Field>
 
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-wrap justify-end gap-2 mt-2">
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>

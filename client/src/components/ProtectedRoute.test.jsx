@@ -14,6 +14,7 @@ function renderAt(path, { adminOnly = false } = {}) {
       <Routes>
         <Route path="/login" element={<div>Login page</div>} />
         <Route path="/" element={<div>Home page</div>} />
+        <Route path="/account" element={<div>Change temporary password</div>} />
         <Route
           path="/secret"
           element={
@@ -28,6 +29,11 @@ function renderAt(path, { adminOnly = false } = {}) {
 }
 
 describe("ProtectedRoute", () => {
+  it("allows guardians with the legacy password-change flag to reach their portal", () => {
+    mockUseAuth.mockReturnValue({ user: { role: "guardian", mustChangePassword: true }, status: "authenticated" });
+    renderAt("/secret");
+    expect(screen.getByText("Home page")).toBeInTheDocument();
+  });
   it("shows a loading state while the session is still bootstrapping", () => {
     mockUseAuth.mockReturnValue({ user: null, status: "loading" });
     renderAt("/secret");
@@ -56,5 +62,11 @@ describe("ProtectedRoute", () => {
     mockUseAuth.mockReturnValue({ user: { role: "admin" }, status: "authenticated" });
     renderAt("/secret", { adminOnly: true });
     expect(screen.getByText("Secret content")).toBeInTheDocument();
+  });
+
+  it("redirects guardians away from teacher and other non-portal routes", () => {
+    mockUseAuth.mockReturnValue({ user: { role: "guardian" }, status: "authenticated" });
+    renderAt("/secret");
+    expect(screen.getByText("Home page")).toBeInTheDocument();
   });
 });

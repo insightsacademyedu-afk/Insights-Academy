@@ -26,8 +26,8 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('ams:session-expired', expired);
   }, []);
 
-  const login = useCallback(async (username, password) => {
-    const u = await authApi.login(username, password);
+  const login = useCallback(async (username, password, role) => {
+    const u = await authApi.login(username, password, role);
     setUser(u);
     setStatus("authenticated");
     return u;
@@ -42,8 +42,14 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const current = await authApi.fetchMe();
+    setUser(current);
+    return current;
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, status, login, logout, isAdmin: user?.role === "admin" }}>
+    <AuthContext.Provider value={{ user, status, login, logout, refreshUser, isAdmin: user?.role === "admin" }}>
       {children}
     </AuthContext.Provider>
   );

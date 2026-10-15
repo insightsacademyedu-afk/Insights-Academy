@@ -20,6 +20,8 @@ The database uses a one-machine replica set so student enrollment, payments and 
 
 ## Hosted deployment
 
+See [SECURITY-REVIEW.md](SECURITY-REVIEW.md) for the security review, deployment requirements, and verification commands.
+
 For a live deployment, use a Node.js host that supports Node.js 22.12 or newer and a hosted MongoDB provider. Build the client with `npm.cmd --prefix client run build`, then start the server with `npm.cmd --prefix server start`. Production reads the hosting platform's `PORT` and listens on `0.0.0.0` by default.
 
 Set these private production environment variables on the host:
@@ -70,7 +72,23 @@ Every created backup is also saved in `local-backups` beside this README. Copy d
 
 Restore replaces the current database. The app validates the file, requires the word `RESTORE`, and creates an automatic pre-restore safety backup in `local-backups` first.
 
+Backup uploads are limited to 32 MiB compressed and 64 MiB expanded. Larger databases need a database-native backup tool. Backup files contain private records and password hashes; store them with restricted access and encryption at rest.
+
+## Parent and guardian portal
+
+Register students normally under **Students**. Saving a new student automatically creates a parent login from the guardian name, primary phone and optional email, in the same transaction as enrollment. Parents sign in with their guardian name, primary phone or email. Their default password is the primary phone number exactly as entered during registration, including any spaces, hyphens or explicitly entered prefix. No country code is added to the password or the displayed login phone. Names are case-insensitive; if a name matches multiple accounts, use a unique phone or email instead. Share these instructions privately. Parents can keep using the default password for portal access. Changing it is optional through My account; a chosen new password must have at least 8 characters.
+
+Siblings with matching parent name and contact details share one account automatically; enrolling another child never resets an existing password or reactivates disabled access. Conflicting names, phone numbers or emails block enrollment with a message so the administrator can correct the details. Parent contact edits on the student's record update the matching linked login and sign out existing sessions. If the phone changes while the parent still uses the default phone password, the default password changes to the new phone; a password already chosen by the parent stays unchanged.
+
+Guardians use the normal sign-in page with their email or phone and password. Their dashboard shows only their selected children, current class placement, finalized test reports, fee invoices, payment history and outstanding fees. Reports still in draft are hidden. Portal access is read-only; internal financial notes, staff details, other students and management screens are excluded.
+
+Guardians change their own passwords in **My account**. For a forgotten password, open **Students → student details → Parent portal login → Reset parent password**. This resets it to the account's phone number, signs out existing sessions and allows immediate portal access without a mandatory password change. The same panel can disable parent access. Resetting or disabling an account affects all children linked to it. Public email reset codes are for administrator/staff accounts.
+
+For students registered before this feature, open their student details and select **Enable parent login**. Existing records are not converted in bulk. Phone-only guardian accounts are supported. At backend startup, the application builds a sparse unique email index before removing the known legacy non-sparse email index; existing email uniqueness is preserved. This requires MongoDB 5.0 or newer and permission to manage indexes. `db:prepare` also includes this migration.
+
 ## Development and checks
+
+Staff can sign in with their login username, account email (including Gmail), or the phone number saved on their linked staff profile, using the same password. Phone matching ignores spaces, hyphens and parentheses; Pakistani mobile numbers accept both `03...` and `+923...` formats. Shared phone numbers or identifiers matching multiple accounts cannot be used to sign in; use a unique username or email instead.
 
 ```powershell
 npm.cmd --prefix server test

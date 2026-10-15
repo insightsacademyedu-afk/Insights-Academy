@@ -22,7 +22,7 @@ export default function Staff() {
 
   return (
     <AppLayout title="Staff & Teachers">
-      <div className="mb-5 inline-flex rounded-md border border-ink-200 bg-paper-50 p-0.5">
+      <div className="mb-5 inline-flex max-w-full flex-wrap rounded-md border border-ink-200 bg-paper-50 p-0.5">
         {[
           { key: "staff", label: "Staff directory" },
           { key: "assignments", label: "Teacher assignments" },
@@ -31,7 +31,7 @@ export default function Staff() {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`rounded px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              tab === t.key ? "bg-ink-900 text-paper-50" : "text-ink-600 hover:text-ink-900"
+              tab === t.key ? "bg-action-900 text-white" : "text-ink-600 hover:text-ink-900"
             }`}
           >
             {t.label}
@@ -93,7 +93,8 @@ function StaffDirectory() {
       fullName: row.fullName,
       designation: row.designation?._id || row.designation || "",
       phone: row.phone || "",
-      email: row.email || "",
+      email: row.email || row.user?.email || "",
+      ...(row.user ? { username: row.user.username || "" } : {}),
       joiningDate: toDateInputValue(row.joiningDate),
       basicSalary: row.basicSalary ? String(row.basicSalary) : "",
       salaryType: row.salaryType || "monthly",
@@ -115,7 +116,7 @@ function StaffDirectory() {
       };
       if (editing) {
         await staffApi.update(editing._id, payload);
-        toast.success("Staff profile updated");
+        toast.success(editing.user ? "Staff profile and login details updated" : "Staff profile updated");
       } else {
         await staffApi.create(payload);
         toast.success("Staff profile created");
@@ -181,9 +182,10 @@ function StaffDirectory() {
       header: "Login",
       render: (row) =>
         row.user ? (
-          <span className="inline-block rounded-full bg-moss-100 px-2.5 py-0.5 text-[11px] font-medium text-moss-600">
-            Active
-          </span>
+          <div>
+            <div className="text-sm text-ink-900">{row.user.username}</div>
+            <span className="text-xs text-ink-500">{row.user.status === "inactive" || row.status === "inactive" ? "Inactive" : "Active"}</span>
+          </div>
         ) : (
           <span className="inline-block rounded-full bg-ink-100 px-2.5 py-0.5 text-[11px] font-medium text-ink-600">
             None
@@ -275,6 +277,19 @@ function StaffDirectory() {
               onChange={(e) => setForm({ ...form, fullName: e.target.value })}
             />
           </Field>
+          {editing?.user && (
+            <Field label="Login username" required>
+              <TextInput
+                required
+                minLength={3}
+                maxLength={40}
+                autoComplete="off"
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+              />
+              <span className="mt-1 block text-xs text-ink-500">Used to sign in. Changing login details signs this staff member out; their password stays the same.</span>
+            </Field>
+          )}
           <Field label="Designation">
             <Select
               value={form.designation}
@@ -288,19 +303,20 @@ function StaffDirectory() {
               ))}
             </Select>
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Phone">
               <TextInput value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </Field>
-            <Field label="Email">
+            <Field label="Email" required={!!editing?.user}>
               <TextInput
                 type="email"
+                required={!!editing?.user}
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
             </Field>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Joining date">
               <TextInput
                 type="date"
@@ -315,7 +331,7 @@ function StaffDirectory() {
               </Select>
             </Field>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Basic salary">
               <TextInput
                 type="number"
@@ -334,7 +350,7 @@ function StaffDirectory() {
             </Field>
           </div>
 
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-wrap justify-end gap-2 mt-2">
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
@@ -436,7 +452,7 @@ function CreateLoginModal({ staff, onClose, onDone }) {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
         </Field>
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex flex-wrap justify-end gap-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
@@ -490,7 +506,7 @@ function ResetPasswordModal({ staff, onClose }) {
         <p className="mb-4 text-xs text-ink-500">
           This immediately invalidates their existing session — they must log in again with the new password.
         </p>
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
@@ -596,11 +612,11 @@ function TeacherAssignments() {
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
         <select
           value={sessionFilter}
           onChange={(e) => setSessionFilter(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All sessions</option>
           {sessions.map((s) => (
@@ -614,7 +630,7 @@ function TeacherAssignments() {
         <select
           value={list.status}
           onChange={(e) => list.setStatus(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All statuses</option>
           <option value="active">Active</option>
@@ -788,7 +804,7 @@ function AssignmentFormModal({ open, onClose, editing, sessions, defaultSession,
           </Select>
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Class" required>
             <Select
               required
@@ -845,7 +861,7 @@ function AssignmentFormModal({ open, onClose, editing, sessions, defaultSession,
           </Select>
         </Field>
 
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex flex-wrap justify-end gap-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>

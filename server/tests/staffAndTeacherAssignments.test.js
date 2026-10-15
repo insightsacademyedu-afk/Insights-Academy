@@ -24,7 +24,7 @@ describe("Phase 3 — Staff & Teacher Assignment engine", () => {
     expect(loginRes.body.user.passwordHash).toBeUndefined();
 
     // The new teacher account should actually be able to log in.
-    const teacherLogin = await agent.post("/api/auth/login").send({ username: "janet", password: "TeacherPass123!" });
+    const teacherLogin = await agent.post("/api/auth/login").send({ role: "staff", username: "janet", password: "TeacherPass123!" });
     expect(teacherLogin.status).toBe(200);
     expect(teacherLogin.body.user.role).toBe("staff");
   });

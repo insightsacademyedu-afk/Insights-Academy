@@ -15,7 +15,7 @@ vi.mock('../api/academicSetup',()=>{
   const api=()=>({list:vi.fn(),create:vi.fn(),update:vi.fn(),remove:vi.fn()});
   return {academicSessionsApi:api(),subjectsApi:api(),designationsApi:api(),classesApi:api(),sectionsApi:api()};
 });
-vi.mock('../api/staff',()=>({staffApi:{list:vi.fn(),create:vi.fn()}}));
+vi.mock('../api/staff',()=>({staffApi:{list:vi.fn(),create:vi.fn(),update:vi.fn()}}));
 vi.mock('../api/teacherAssignments',()=>({teacherAssignmentsApi:{list:vi.fn()}}));
 vi.mock('../api/reports',()=>({fetchStudentsReport:vi.fn(),fetchFeeCollectionReport:vi.fn(),fetchOutstandingFeesReport:vi.fn(),fetchExpensesReport:vi.fn(),downloadReportCsv:vi.fn()}));
 vi.mock('../api/salaries',()=>({salariesApi:{list:vi.fn(),create:vi.fn(),bulkGenerate:vi.fn(),markPaid:vi.fn()}}));
@@ -81,6 +81,31 @@ test('new staff salary starts blank and saves only the entered amount',async()=>
   expect(salary).toHaveValue(4000);
   await user.click(screen.getByRole('button',{name:'Create staff'}));
   await waitFor(()=>expect(staffApi.create).toHaveBeenCalledWith(expect.objectContaining({basicSalary:4000})));
+});
+
+test('editing staff preloads and saves the linked login username with profile details',async()=>{
+  const row={_id:'staff-1',fullName:'Teacher One',email:'teacher@example.com',status:'active',user:{_id:'user-1',username:'oldteacher',email:'teacher@example.com',status:'active'}};
+  staffApi.list.mockResolvedValue({...empty,items:[row],total:1});
+  staffApi.update.mockResolvedValue({});
+  mount(Staff);const user=userEvent.setup();
+  await user.click(await screen.findByRole('button',{name:'Edit',exact:true}));
+  const username=screen.getByLabelText(/^Login username/);
+  expect(username).toHaveValue('oldteacher');
+  await user.clear(username);await user.type(username,'newteacher');
+  const name=screen.getByLabelText(/^Full name/);
+  await user.clear(name);await user.type(name,'Updated Teacher');
+  await user.click(screen.getByRole('button',{name:'Save changes'}));
+  await waitFor(()=>expect(staffApi.update).toHaveBeenCalledWith('staff-1',expect.objectContaining({username:'newteacher',fullName:'Updated Teacher',email:'teacher@example.com'})));
+});
+
+test('duplicate login details keep the staff edit form open with an error',async()=>{
+  staffApi.list.mockResolvedValue({...empty,items:[{_id:'staff-1',fullName:'Teacher',email:'teacher@example.com',status:'active',user:{username:'teacher',status:'active'}}],total:1});
+  staffApi.update.mockRejectedValueOnce(new Error('That username or email is already taken. No changes were saved.'));
+  mount(Staff);const user=userEvent.setup();
+  await user.click(await screen.findByRole('button',{name:'Edit',exact:true}));
+  await user.click(screen.getByRole('button',{name:'Save changes'}));
+  expect(await screen.findByText(/already taken/)).toBeTruthy();
+  expect(screen.getByLabelText(/^Login username/)).toHaveValue('teacher');
 });
 test('reports switch endpoints and export the selected report',async()=>{
   mount(Reports);await waitFor(()=>expect(reports.fetchStudentsReport).toHaveBeenCalled());

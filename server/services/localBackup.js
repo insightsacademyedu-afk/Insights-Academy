@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomInt } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -15,6 +15,8 @@ const BACKUP_DIRECTORY = process.env.NODE_ENV === "test"
   : fileURLToPath(new URL("../../local-backups/", import.meta.url));
 const FORMAT = "academy-local-backup";
 const VERSION = 1;
+export const MAX_BACKUP_BYTES = 32 * 1024 * 1024;
+export const MAX_EXPANDED_BACKUP_BYTES = 64 * 1024 * 1024;
 
 function safeDatabaseName(name) {
   return String(name || "academy").replace(/[^a-zA-Z0-9_-]/g, "-");
@@ -39,21 +41,32 @@ export async function captureDatabase() {
 }
 
 export async function encodeBackup(payload) {
-  return gzipAsync(Buffer.from(EJSON.stringify(payload, { relaxed: false }), "utf8"), { level: 9 });
+  const raw = Buffer.from(EJSON.stringify(payload, { relaxed: false }), "utf8");
+  if (raw.length > MAX_EXPANDED_BACKUP_BYTES) {
+    throw Object.assign(new Error("Database exceeds the 64 MiB expanded backup limit; use a database-native backup tool"), { status: 413 });
+  }
+  const buffer = await gzipAsync(raw, { level: 9 });
+  if (buffer.length > MAX_BACKUP_BYTES) {
+    throw Object.assign(new Error("Backup exceeds the 32 MiB upload limit; use a database-native backup tool"), { status: 413 });
+  }
+  return buffer;
 }
 
 export async function decodeBackup(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length > MAX_BACKUP_BYTES) {
+    throw Object.assign(new Error("Backup must be a binary file of at most 32 MiB"), { status: 400 });
+  }
   let payload;
   try {
-    payload = EJSON.parse((await gunzipAsync(buffer)).toString("utf8"));
+    payload = EJSON.parse((await gunzipAsync(buffer, { maxOutputLength: MAX_EXPANDED_BACKUP_BYTES })).toString("utf8"));
   } catch {
     throw Object.assign(new Error("This is not a valid Academy Management backup file"), { status: 400 });
   }
-  if (payload?.format !== FORMAT || payload?.version !== VERSION || !payload.collections || typeof payload.collections !== "object") {
+  if (payload?.format !== FORMAT || payload?.version !== VERSION || !payload.collections || typeof payload.collections !== "object" || Array.isArray(payload.collections) || !Object.keys(payload.collections).length) {
     throw Object.assign(new Error("This backup format is not supported"), { status: 400 });
   }
   for (const [name, documents] of Object.entries(payload.collections)) {
-    if (!/^[a-zA-Z0-9_.-]+$/.test(name) || name.startsWith("system.") || !Array.isArray(documents)) {
+    if (!/^[a-zA-Z0-9_.-]+$/.test(name) || ["__proto__", "prototype", "constructor"].includes(name) || name.startsWith("system.") || !Array.isArray(documents) || documents.some(doc => !doc || typeof doc !== "object" || Array.isArray(doc))) {
       throw Object.assign(new Error("The backup contains an invalid collection"), { status: 400 });
     }
   }
@@ -87,6 +100,11 @@ export async function restoreDatabase(buffer) {
   const safety = await saveBackup(safetyBuffer, safetyPayload.database, `${safetyPayload.createdAt.slice(0, -1)}-before-restoreZ`);
   try {
     await replaceDatabase(incoming);
+    // A restore must not resurrect old JWTs or outstanding password-reset codes.
+    await mongoose.connection.db.collection("users").updateMany({}, { $set: {
+      tokenVersion: randomInt(1, 2 ** 48 - 1),
+      passwordResetTokenHash: null, passwordResetExpiresAt: null, passwordResetAttempts: 0,
+    } });
   } catch (error) {
     await replaceDatabase(safetyPayload);
     throw Object.assign(new Error(`Restore failed and the previous data was put back. ${error.message}`), { status: 500 });

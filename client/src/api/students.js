@@ -16,6 +16,9 @@ import { createResourceApi } from "./resource";
 //   objects (see studentController.create) — the server does all three
 //   inserts (Guardian, Student, StudentClassAssignment) in one transaction.
 export const studentsApi = {
+  parentLogin(id, action, accountId) {
+    return api.post(`/students/${id}/parent-login/${action}`, { accountId }).then(r => r.data);
+  },
   ...createResourceApi("/students"),
   enroll(id, body) {
     return api.post(`/students/${id}/enroll`, body).then((r) => r.data);

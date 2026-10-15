@@ -4,6 +4,11 @@
   --font-serif: Georgia, "Times New Roman", serif;
   --font-sans: "Segoe UI", Arial, sans-serif;
   --font-mono: Consolas, "Courier New", monospace;
+  --color-surface: #ffffff;
+  --color-action-900: #1e2a44;
+  --color-action-800: #283654;
+  --color-danger-600: #a34331;
+  --color-primary-hover: #93691b;
 
   /* Ink — structural navy, used for nav, headings, text on paper */
   --color-ink-950: #131b30;
@@ -37,10 +42,92 @@
   --color-amber-100: #f2e6c9;
 }
 
+:root { color-scheme: light; }
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-surface: #1a2638;
+  --color-paper-50: #172234;
+  --color-paper-100: #101927;
+  --color-paper-200: #243247;
+  --color-paper-300: #35465d;
+  --color-ink-950: #f1f5fb;
+  --color-ink-900: #e0e8f5;
+  --color-ink-800: #ced9eb;
+  --color-ink-700: #bccbe1;
+  --color-ink-600: #a9bbd3;
+  --color-ink-500: #91a5bf;
+  --color-ink-300: #4e6380;
+  --color-ink-200: #35465e;
+  --color-ink-100: #26364c;
+  --color-action-900: #344b6c;
+  --color-action-800: #405b80;
+  --color-brass-600: #e1b85f;
+  --color-brass-100: #3c321e;
+  --color-moss-600: #92d4a4;
+  --color-moss-100: #20392e;
+  --color-brick-600: #f3a593;
+  --color-brick-100: #422b2c;
+  --color-amber-600: #e6c078;
+  --color-amber-100: #3b3324;
+}
+
+/* Navigation keeps its navy palette in both themes. */
+.theme-navigation {
+  --color-ink-950: #131b30;
+  --color-ink-900: #1e2a44;
+  --color-ink-800: #283654;
+  --color-ink-700: #3a4a6b;
+  --color-ink-600: #55658a;
+  --color-ink-500: #91a5bf;
+  --color-ink-200: #d6dce8;
+  --color-paper-50: #fbfaf7;
+  --color-paper-100: #f4f2ec;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--color-paper-100);
   color: var(--color-ink-900);
+}
+
+/* Allow content to shrink inside grids, and wrap long user-entered values. */
+@layer base {
+  :where(.app-content, .ui-surface) :where(.grid) > * {
+    min-width: 0;
+  }
+
+  :where(.app-content, .ui-surface) :where(h2, h3, h4, p, label, dt, dd) {
+    overflow-wrap: anywhere;
+  }
+
+  :where(.app-content, .ui-surface) :where(input, select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  :where(.app-content, .ui-surface) :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select) {
+    min-height: 2.5rem;
+  }
+
+  :where(.app-content, .ui-surface) .font-tabular {
+    overflow-wrap: anywhere;
+  }
+
+  :where(.app-content, .ui-surface) button {
+    overflow-wrap: anywhere;
+  }
+
+  :where(.app-content, .ui-surface) button > svg {
+    flex-shrink: 0;
+  }
+
+}
+
+@media (max-width: 639px) {
+  :where(.app-content, .ui-surface) :where(input, select, textarea) {
+    font-size: 1rem;
+  }
 }
 
 .font-display {
@@ -57,6 +144,103 @@ body {
   color: var(--color-ink-950);
 }
 
+/* Insights Academy identity: the supplied teal-and-coral mark, with a light
+   version for dark surfaces. The photograph is decorative; forms stay native. */
+.academy-brand { display: flex; flex-direction: column; align-items: center; color: #0c4956; }
+.academy-brand--dark { color: #f4f3ef; }
+.academy-brand__mark { width: 64px; height: 66px; flex-shrink: 0; }
+.academy-brand__wordmark { display: flex; flex-direction: column; align-items: center; margin-top: 9px; }
+.academy-brand__name { font-family: "Segoe UI", Arial, sans-serif; font-size: 31px; line-height: 1.05; font-weight: 750; letter-spacing: .105em; padding-left: .105em; }
+.academy-brand__academy { color: #e8794d; font-size: 13px; line-height: 1.6; letter-spacing: .36em; padding-left: .36em; margin-top: 4px; }
+.academy-brand--compact { flex-direction: row; gap: 10px; }
+.academy-brand--compact .academy-brand__mark { width: 36px; height: 39px; }
+.academy-brand--compact .academy-brand__wordmark { margin: 0; }
+.academy-brand--compact .academy-brand__name { font-size: 18px; letter-spacing: .045em; }
+.academy-brand--compact .academy-brand__academy { font-size: 9px; letter-spacing: .32em; margin-top: 2px; }
+
+.academy-login {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  display: grid;
+  place-items: start center;
+  overflow: hidden;
+  padding: clamp(30px, 5.1vh, 58px) 24px 64px;
+  background: #101d2d url('/branding/academy-cover-v2.png') center center / 100% 100% no-repeat;
+}
+.academy-login::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgb(3 10 20 / .13), rgb(3 10 20 / .03) 60%, transparent); }
+.academy-login__content { position: relative; z-index: 1; width: min(100%, 384px); min-width: 0; overflow-wrap: anywhere; }
+.academy-login__brand { text-align: center; margin-bottom: 24px; }
+.academy-login__brand .academy-brand__mark { width: 54px; height: 56px; color: #c7952f; }
+.academy-login__brand .academy-brand__mark path, .academy-login__brand .academy-brand__mark circle { fill: currentColor; }
+.academy-login__brand .academy-brand__wordmark { margin-top: 2px; }
+.academy-login__brand .academy-brand__name { font-family: Georgia, "Times New Roman", serif; font-size: 40px; line-height: 1.1; font-weight: 400; letter-spacing: .12em; }
+.academy-login__brand .academy-brand__academy { position: relative; color: #c7952f; font-size: 15px; line-height: 1.4; margin-top: 0; letter-spacing: .36em; }
+.academy-login__brand .academy-brand__academy::before, .academy-login__brand .academy-brand__academy::after { content: ""; position: absolute; top: 50%; height: 1px; width: 42px; background: #b9892d; }
+.academy-login__brand .academy-brand__academy::before { right: calc(100% + 14px); }
+.academy-login__brand .academy-brand__academy::after { left: calc(100% + 14px); }
+.academy-login__brand > p { margin-top: 12px; font-size: 12px; line-height: 1.5; font-weight: 500; letter-spacing: .23em; color: #9ca9bc; }
+.academy-login__brand > p span { display: inline-block; margin: 0 5px; color: #c7952f; }
+.academy-login__slogan { position: absolute; left: max(12.7vw, 30px); top: 32.4%; color: #f5f3ee; font-family: Georgia, "Times New Roman", serif; font-size: clamp(27px, 2.28vw, 34px); line-height: 1.18; letter-spacing: -.02em; }
+.academy-login__slogan p:nth-child(2) { color: #d8a446; font-style: italic; }
+.academy-login__slogan span { display: block; width: 62px; height: 2px; margin-top: 18px; background: #c7952f; }
+.academy-login__corner { position: absolute; width: 250px; height: 175px; left: 0; top: 0; color: #b5842e; opacity: .65; pointer-events: none; }
+.academy-login__watermark { position: absolute; width: clamp(190px, 19vw, 280px); right: 18%; top: 19%; opacity: .12; color: #9cacc8; pointer-events: none; }
+.academy-login-card { background: #fdfcf9; padding: 25px 26px 24px; border: 1px solid rgb(255 255 255 / .5); border-radius: 7px; box-shadow: 0 22px 70px rgb(0 0 0 / .32), 0 2px 8px rgb(0 0 0 / .1); }
+.academy-login-card h2 { font-family: Georgia, "Times New Roman", serif; font-size: 19px; line-height: 1.3; font-weight: 400; color: #1c2a41; margin: 0 0 16px; }
+.academy-login-card > label { margin-bottom: 12px; }
+.academy-login-card label > span:first-child { color: #667895; font-size: 12px; font-weight: 600; line-height: 1.5; margin-bottom: 6px; }
+.academy-login-card input:not([type="radio"]) { min-width: 0; width: 100%; height: 42px; border-radius: 5px; border-color: #d8e0ed; padding: 8px 11px; background: #fff; font-size: 14px; color: #24354c; }
+.academy-login-card input::placeholder { color: #8b99b0; opacity: 1; }
+.academy-login-card input:not([type="radio"]):focus { outline: 2px solid rgb(199 149 47 / .25); outline-offset: 1px; border-color: #ba8b34; box-shadow: none; }
+.academy-login-roles { min-width: 0; }
+.academy-login-roles__options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.academy-login-roles__options > label { display: flex; align-items: center; justify-content: center; position: relative; min-width: 0; min-height: 44px; touch-action: manipulation; }
+.academy-login-roles__options > label:focus-within { outline: 2px solid #c7952f; outline-offset: 2px; }
+.academy-login-roles:disabled { opacity: .6; }
+.academy-login-card button[type="submit"] { min-height: 44px; padding: 10px 12px; font-size: 14px; font-weight: 600; background: linear-gradient(110deg, #b78a2b, #b27d1b); border: 1px solid #c09236; color: white; border-radius: 5px; width: 100%; margin-top: 2px; transition: background .15s ease, box-shadow .15s ease; }
+.academy-login-card button[type="submit"]:hover { background: #a7761f; box-shadow: 0 3px 10px rgb(147 105 27 / .18); }
+.academy-login-card button[type="submit"]:disabled { opacity: .6; cursor: wait; }
+.academy-login-card > button[type="button"] { margin-top: 14px; min-height: 40px; font-size: 13px; line-height: 1.5; color: #6e809e; }
+.academy-login-card button:focus-visible { outline: 2px solid #c7952f; outline-offset: 3px; }
+.academy-login-card__help { margin-top: 12px; text-align: center; color: #72829e; font-size: 12px; line-height: 1.5; }
+:root[data-theme="dark"] .academy-login-card {
+  background: var(--color-paper-50);
+  border-color: var(--color-ink-200);
+}
+:root[data-theme="dark"] .academy-login-card h2 { color: var(--color-ink-950); }
+:root[data-theme="dark"] .academy-login-card label > span:first-child,
+:root[data-theme="dark"] .academy-login-card > button[type="button"],
+:root[data-theme="dark"] .academy-login-card__help { color: var(--color-ink-600); }
+:root[data-theme="dark"] .academy-login-card input:not([type="radio"]) {
+  background: var(--color-surface);
+  color: var(--color-ink-950);
+  border-color: var(--color-ink-200);
+}
+@media (max-width: 1100px) {
+  .academy-login__slogan { left: 5%; font-size: 27px; }
+  .academy-login__watermark { right: 8%; width: 185px; }
+}
+@media (max-width: 900px) {
+  .academy-login__slogan, .academy-login__watermark { display: none; }
+  .academy-login { place-items: center; background-size: cover; background-position: 49% center; }
+}
+@media (max-width: 540px) {
+  .academy-login { padding: 28px clamp(12px, 4vw, 20px); background-position: 44% center; }
+  .academy-login::before { background: rgb(6 16 29 / .38); }
+  .academy-login__brand { margin-bottom: 22px; }
+  .academy-login__brand .academy-brand__name { font-size: clamp(28px, 8vw, 36px); }
+  .academy-login__brand > p { font-size: 10px; letter-spacing: .16em; }
+  .academy-brand__mark { width: 58px; height: 60px; }
+  .academy-brand__name { font-size: 29px; }
+  .academy-login-card { padding: 24px clamp(16px, 5vw, 23px); overflow-wrap: anywhere; }
+  .academy-login-card input:not([type="radio"]) { height: 44px; font-size: 16px; min-width: 0; }
+  .academy-login-card label > span:first-child { font-size: 12px; }
+  .academy-login-card button[type="submit"] { min-height: 44px; height: auto; font-size: 13px; }
+  .academy-login-card > button[type="button"] { min-height: 44px; padding: 8px 0; font-size: 12px; }
+  .academy-login-card__help { font-size: 12px; }
+  .academy-login__corner { width: 180px; }
+}
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;

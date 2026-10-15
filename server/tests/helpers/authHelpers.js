@@ -40,7 +40,7 @@ export async function createAndLoginUser(app, { role = "admin", password = "Pass
   });
 
   const agent = request.agent(app);
-  const res = await agent.post("/api/auth/login").send({ username: user.username, password });
+  const res = await agent.post("/api/auth/login").send({ username: user.username, password, role: role === "guardian" ? "parent" : role });
   const csrfToken = extractCookieValue(res, "ams_csrf");
 
   return { user, agent, csrfToken, loginRes: res };

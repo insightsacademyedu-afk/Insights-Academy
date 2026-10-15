@@ -4,6 +4,7 @@ import { requireStudentAccess } from "../utils/teacherScope.js";
 import { list, getOne, create, update, enroll, remove } from "../controllers/studentController.js";
 import { sensitiveActionRateLimiter } from "../middleware/rateLimiters.js";
 import { archiveResource } from "../controllers/archiveController.js";
+import { parentLoginAction } from "../controllers/studentParentLoginController.js";
 
 const router = Router();
 
@@ -22,6 +23,7 @@ router.get("/:id", requireStudentAccess("id"), getOne);
 router.use(requireRole("admin"));
 
 router.post("/", create);
+router.post("/:id/parent-login/:action", sensitiveActionRateLimiter, parentLoginAction);
 router.put("/:id", update);
 router.post("/:id/enroll", enroll);
 router.delete("/:id", sensitiveActionRateLimiter, archiveResource("student"));

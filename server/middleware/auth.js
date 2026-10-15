@@ -34,6 +34,12 @@ export async function requireAuth(req, res, next) {
       return res.status(401).json({ message: "Session has been invalidated, please log in again" });
     }
 
+    // Guardians are denied by default on every existing academy API, including
+    // teacher-scoped endpoints. Their dedicated read-only API checks child ownership.
+    if (user.role === "guardian" && !["/api/auth", "/api/guardian-portal"].includes(req.baseUrl)) {
+      return res.status(403).json({ message: "Guardian accounts can only access their own portal" });
+    }
+
     req.user = user; // full mongoose doc, downstream middleware/controllers can use it
     next();
   } catch (err) {

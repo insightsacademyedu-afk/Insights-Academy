@@ -32,7 +32,7 @@ export function ToastProvider({ children }) {
             ) : (
               <XCircle size={16} className="mt-0.5 shrink-0" />
             )}
-            <span className="flex-1">{t.message}</span>
+            <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{t.message}</span>
             <button onClick={() => dismiss(t.id)} className="opacity-60 hover:opacity-100">
               <X size={14} />
             </button>

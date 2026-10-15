@@ -1,7 +1,7 @@
 import api from "./client";
 
-export function login(username, password) {
-  return api.post("/auth/login", { username, password }).then((r) => r.data.user);
+export function login(username, password, role) {
+  return api.post("/auth/login", { username, password, role }).then((r) => r.data.user);
 }
 
 export function requestPasswordReset(email) {

@@ -11,7 +11,7 @@ import { createAcademicChain, createEnrolledStudent, assignTeacher } from "./hel
 
 test("malformed login data returns a client error rather than throwing", async () => {
   for (const password of [123, {}, [], "x".repeat(73)]) {
-    expect((await request(app).post("/api/auth/login").send({ username: "admin", password })).status).toBe(400);
+    expect((await request(app).post("/api/auth/login").send({ role: "admin", username: "admin", password })).status).toBe(400);
   }
 });
 test("financial formulas handle numeric strings without concatenation", () => {

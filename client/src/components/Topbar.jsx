@@ -1,45 +1,51 @@
 import { useState } from "react";
 import { ChevronDown, LogOut, Menu } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import ThemeSwitch from "./ThemeSwitch";
 
 export default function Topbar({ title, onOpenMobileNav }) {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="flex items-center justify-between border-b border-ink-200 bg-paper-50 px-4 md:px-8 py-4">
-      <div className="flex items-center gap-3">
+    <header className="relative z-20 flex shrink-0 items-center justify-between gap-3 border-b border-ink-200 bg-paper-50 px-4 py-4 md:px-8">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         <button
           onClick={onOpenMobileNav}
-          className="md:hidden text-ink-700 -ml-1 p-1"
+          className="md:hidden shrink-0 text-ink-700 -ml-1 p-2"
           aria-label="Open navigation"
         >
           <Menu size={20} />
         </button>
-        <h1 className="font-display text-xl md:text-2xl text-ink-950">{title}</h1>
+        <h1 className="min-w-0 font-display text-xl leading-tight text-ink-950 [overflow-wrap:anywhere] md:text-2xl">{title}</h1>
       </div>
 
-      <div className="relative">
+      <ThemeSwitch />
+      <div className="relative min-w-0 shrink-0 sm:max-w-[40%]">
         <button
           onClick={() => setMenuOpen((v) => !v)}
-          className="flex items-center gap-2 rounded-md border border-ink-200 bg-white px-3 py-1.5 text-sm text-ink-800 hover:border-ink-300"
+          aria-label="Account menu"
+          aria-expanded={menuOpen}
+          aria-controls={menuOpen ? "account-menu" : undefined}
+          onKeyDown={(event) => { if (event.key === "Escape") setMenuOpen(false); }}
+          className="relative z-20 flex min-h-10 w-full min-w-0 items-center gap-2 rounded-md border border-ink-200 bg-surface px-3 py-1.5 text-sm text-ink-800 hover:border-ink-300"
         >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink-900 text-[11px] font-medium text-paper-50">
-            {(user?.username || "?").slice(0, 1).toUpperCase()}
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-action-900 text-xs font-medium text-white">
+            {(user?.displayName || user?.username || "?").slice(0, 1).toUpperCase()}
           </span>
-          <span className="hidden sm:inline">{user?.username}</span>
-          <span className="hidden sm:inline text-[11px] uppercase text-ink-500 tracking-wide">
+          <span className="hidden min-w-0 truncate sm:block" title={user?.displayName || user?.username}>{user?.displayName || user?.username}</span>
+          <span className="hidden shrink-0 text-xs uppercase text-ink-500 tracking-wide sm:inline">
             {user?.role}
           </span>
-          <ChevronDown size={14} />
+          <ChevronDown size={14} className="shrink-0" />
         </button>
 
         {menuOpen && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-            <div className="absolute right-0 z-20 mt-2 w-44 rounded-md border border-ink-200 bg-white py-1 shadow-lg shadow-ink-950/5">
+            <div id="account-menu" onKeyDown={(event) => { if (event.key === "Escape") setMenuOpen(false); }} className="absolute right-0 z-20 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-md border border-ink-200 bg-surface py-1 shadow-lg shadow-ink-950/5">
               <div className="px-3 py-2 border-b border-ink-100">
-                <div className="text-sm text-ink-900">{user?.email}</div>
+                <div className="text-sm leading-relaxed text-ink-900 [overflow-wrap:anywhere]">{user?.email || user?.phone}</div>
               </div>
               <button
                 onClick={logout}

@@ -159,7 +159,7 @@ export default function Designations() {
             </Select>
           </Field>
 
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-wrap justify-end gap-2 mt-2">
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>

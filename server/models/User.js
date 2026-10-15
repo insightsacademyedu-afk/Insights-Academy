@@ -4,10 +4,10 @@ import bcrypt from "bcryptjs";
 
 const { Schema } = mongoose;
 
-// Roles are an enum today (admin/staff) but the schema is written so
+// Roles are an enum today (admin/staff/guardian) but the schema is written so
 // new roles (accountant, principal, receptionist, parent...) can be
 // added later without changing the shape of the collection.
-const ROLES = ["admin", "staff"];
+const ROLES = ["admin", "staff", "guardian"];
 
 const userSchema = new Schema(
   {
@@ -22,8 +22,7 @@ const userSchema = new Schema(
     },
     email: {
       type: String,
-      required: true,
-      unique: true,
+      required: function () { return this.role !== "guardian" || !this.phone; },
       trim: true,
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, "Invalid email address"],
@@ -45,6 +44,11 @@ const userSchema = new Schema(
       ref: "Staff",
       default: null,
     },
+    displayName: { type: String, trim: true, maxlength: 120 },
+    phone: { type: String, trim: true },
+    phoneAsEntered: { type: String, trim: true, maxlength: 64 },
+    studentIds: [{ type: Schema.Types.ObjectId, ref: "Student" }],
+    mustChangePassword: { type: Boolean, default: false },
     status: {
       type: String,
       enum: ["active", "inactive"],
@@ -70,6 +74,10 @@ const userSchema = new Schema(
   { timestamps: true } // adds createdAt / updatedAt
 );
 
+userSchema.index({ email: 1 }, { unique: true, sparse: true, name: "email_optional_unique" });
+userSchema.index({ phone: 1 }, { unique: true, name: "guardian_phone_unique", partialFilterExpression: { role: "guardian", phone: { $type: "string" } } });
+userSchema.index({ role: 1, studentIds: 1 });
+
 userSchema.methods.isLocked = function isLocked() {
   return Boolean(this.lockUntil && this.lockUntil > new Date());
 };
@@ -89,7 +97,11 @@ userSchema.set("toJSON", {
     delete ret.failedLoginAttempts;
     delete ret.lockUntil;
     delete ret.tokenVersion;
+    delete ret.passwordResetTokenHash;
+    delete ret.passwordResetExpiresAt;
+    delete ret.passwordResetAttempts;
     delete ret.__v;
+    if (ret.role === "guardian" && ret.phoneAsEntered) ret.phone = ret.phoneAsEntered;
     return ret;
   },
 });

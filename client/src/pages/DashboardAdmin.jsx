@@ -16,7 +16,7 @@ export default function DashboardAdmin() {
 
       {data && (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             <StatCard
               label="Active students"
               value={formatNumber(data.students.active || 0)}
@@ -53,16 +53,16 @@ export default function DashboardAdmin() {
                     ]}
                     margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#eae7dd" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#55658a" }} axisLine={{ stroke: "#dbd6c8" }} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-ink-200)" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: "var(--color-ink-600)" }} axisLine={{ stroke: "var(--color-ink-300)" }} tickLine={false} />
                     <YAxis
-                      tick={{ fontSize: 11, fill: "#55658a" }}
+                      tick={{ fontSize: 11, fill: "var(--color-ink-600)" }}
                       axisLine={false}
                       tickLine={false}
                       tickFormatter={(v) => formatCurrency(v)}
                       width={70}
                     />
-                    <Tooltip formatter={(v) => formatCurrency(v)} cursor={{ fill: "#f4f2ec" }} />
+                    <Tooltip formatter={(v) => formatCurrency(v)} cursor={{ fill: "var(--color-paper-100)" }} contentStyle={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-ink-200)", color: "var(--color-ink-900)" }} />
                     <Bar dataKey="amount" fill="#c7952f" radius={[3, 3, 0, 0]} maxBarSize={80} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -146,7 +146,7 @@ function StatusBars({ label, counts }) {
 
 function LoadingState() {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="h-24 rounded-lg border border-ink-200 bg-paper-50 animate-pulse" />
       ))}

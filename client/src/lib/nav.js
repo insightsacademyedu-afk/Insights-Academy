@@ -56,3 +56,8 @@ export const NAV_SECTIONS = [
 ];
 
 export const CURRENT_PHASE = 9;
+
+export function canAccessNav(item, role) {
+  if (role === "guardian") return item.to === "/" || item.to === "/account";
+  return !item.adminOnly || role === "admin";
+}

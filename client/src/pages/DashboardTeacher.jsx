@@ -11,7 +11,7 @@ export default function DashboardTeacher() {
   return (
     <AppLayout title="My Dashboard">
       {loading && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {Array.from({ length: 2 }).map((_, i) => (
             <div key={i} className="h-24 rounded-lg border border-ink-200 bg-paper-50 animate-pulse" />
           ))}
@@ -26,7 +26,7 @@ export default function DashboardTeacher() {
 
       {data && (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4 max-w-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
             <StatCard label="My students" value={formatNumber(data.studentCount)} sub="Across your assigned classes" />
             <StatCard
               label="Tests created"

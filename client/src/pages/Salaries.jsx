@@ -23,7 +23,7 @@ export default function Salaries() {
 
   return (
     <AppLayout title="Salaries & Expenses">
-      <div className="mb-5 inline-flex rounded-md border border-ink-200 bg-paper-50 p-0.5">
+      <div className="mb-5 inline-flex max-w-full flex-wrap rounded-md border border-ink-200 bg-paper-50 p-0.5">
         {[
           { key: "salaries", label: "Salaries" },
           { key: "expenses", label: "Expenses" },
@@ -33,7 +33,7 @@ export default function Salaries() {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`rounded px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              tab === t.key ? "bg-ink-900 text-paper-50" : "text-ink-600 hover:text-ink-900"
+              tab === t.key ? "bg-action-900 text-white" : "text-ink-600 hover:text-ink-900"
             }`}
           >
             {t.label}
@@ -127,11 +127,11 @@ function SalariesTab() {
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
         <select
           value={staffFilter}
           onChange={(e) => setStaffFilter(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All staff</option>
           {staffOptions.map((s) => (
@@ -145,13 +145,13 @@ function SalariesTab() {
           value={periodFilter}
           onChange={(e) => setPeriodFilter(e.target.value)}
           placeholder="Period, e.g. 2026-01"
-          className="w-40 rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-950 outline-none focus:border-ink-700 focus:ring-2 focus:ring-ink-700/10"
+          className="w-40 rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-950 outline-none focus:border-ink-700 focus:ring-2 focus:ring-ink-700/10"
         />
 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All statuses</option>
           {SALARY_STATUSES.map((s) => (
@@ -281,7 +281,7 @@ function BulkSalaryModal({ open, onClose, onDone }) {
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Bonus for each staff member">
               <TextInput
                 type="number"
@@ -306,14 +306,14 @@ function BulkSalaryModal({ open, onClose, onDone }) {
             <TextArea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </Field>
 
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-wrap justify-end gap-2 mt-2">
             <Button type="button" variant="ghost" onClick={handleClose}>Cancel</Button>
             <Button type="submit" disabled={saving}>{saving ? "Generating…" : "Generate salaries"}</Button>
           </div>
         </form>
       ) : (
         <div>
-          <div className="mb-4 grid grid-cols-2 gap-3">
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="rounded-md border border-moss-600/30 bg-moss-100 px-3 py-3 text-center">
               <div className="font-tabular text-2xl text-moss-600">{result.createdCount}</div>
               <div className="text-xs text-moss-600">created</div>
@@ -415,7 +415,7 @@ function NewSalaryModal({ open, onClose, staffOptions, onSaved }) {
           />
         </Field>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Field label="Base amount">
             <TextInput
               type="number"
@@ -454,7 +454,7 @@ function NewSalaryModal({ open, onClose, staffOptions, onSaved }) {
           <TextArea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </Field>
 
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex flex-wrap justify-end gap-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
@@ -524,7 +524,7 @@ function MarkPaidModal({ salary, onClose, onSaved }) {
             ))}
           </Select>
         </Field>
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex flex-wrap justify-end gap-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
@@ -641,11 +641,11 @@ function ExpensesTab() {
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All categories</option>
           {categories.map((c) => (
@@ -774,7 +774,7 @@ function ExpenseFormModal({ open, onClose, editing, categories, currentUserId, o
           </Select>
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Amount" required>
             <TextInput
               type="number"
@@ -798,7 +798,7 @@ function ExpenseFormModal({ open, onClose, editing, categories, currentUserId, o
           <TextArea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </Field>
 
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex flex-wrap justify-end gap-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
@@ -954,7 +954,7 @@ function CategoriesTab() {
             </Select>
           </Field>
 
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-wrap justify-end gap-2 mt-2">
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>

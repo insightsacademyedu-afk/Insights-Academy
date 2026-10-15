@@ -34,15 +34,15 @@ export default function ArchiveHistory() {
     <div className="mb-4 flex items-center justify-between gap-3">
       <p className="text-sm text-ink-600">Archived records are hidden from normal work but retained for audit and recovery.</p>
       <select aria-label="Archive state" value={state} onChange={event => { setState(event.target.value); setPage(1); }}
-        className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm">
+        className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm">
         <option value="archived">Currently archived</option>
         <option value="restored">Restored history</option>
       </select>
     </div>
     {error && <p role="alert" className="mb-4 text-sm text-brick-600">{error}</p>}
     {loading ? <p role="status">Loading archive…</p> : data.items.length === 0 ?
-      <p className="rounded-md border border-ink-100 bg-white p-6 text-sm text-ink-500">No records in this view.</p> :
-      <div className="overflow-x-auto rounded-md border border-ink-100 bg-white"><table className="w-full text-sm">
+      <p className="rounded-md border border-ink-100 bg-surface p-6 text-sm text-ink-500">No records in this view.</p> :
+      <div className="overflow-x-auto rounded-md border border-ink-100 bg-surface"><table className="w-full text-sm">
         <thead><tr className="border-b bg-paper-100 text-left"><th className="p-3">Record</th><th className="p-3">Type</th><th className="p-3">Reason</th><th className="p-3">Archived</th><th className="p-3">Impact</th><th className="p-3"></th></tr></thead>
         <tbody>{data.items.map(item => <tr key={item._id} className="border-b last:border-0">
           <td className="p-3 font-medium">{item.label}</td><td className="p-3">{item.resourceType}</td>

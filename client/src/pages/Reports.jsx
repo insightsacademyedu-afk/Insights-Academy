@@ -39,7 +39,7 @@ export default function Reports() {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`rounded px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              tab === t.key ? "bg-ink-900 text-paper-50" : "text-ink-600 hover:text-ink-900"
+              tab === t.key ? "bg-action-900 text-white" : "text-ink-600 hover:text-ink-900"
             }`}
           >
             {t.label}
@@ -133,17 +133,17 @@ function StudentsReportTab() {
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search name or admission #…"
-          className="w-60 rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-950 outline-none focus:border-ink-700 focus:ring-2 focus:ring-ink-700/10"
+          className="w-60 rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-950 outline-none focus:border-ink-700 focus:ring-2 focus:ring-ink-700/10"
         />
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All statuses</option>
           <option value="active">Active</option>
@@ -152,7 +152,7 @@ function StudentsReportTab() {
         <select
           value={gender}
           onChange={(e) => setGender(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All genders</option>
           <option value="male">Male</option>
@@ -219,7 +219,7 @@ function FeeCollectionReportTab() {
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
         <DateRangeFields from={from} to={to} onFrom={setFrom} onTo={setTo} />
 
         <div className="flex-1" />
@@ -232,7 +232,7 @@ function FeeCollectionReportTab() {
         />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
         <StatCard label="Total collected" value={formatCurrency(data?.total || 0)} tone="moss" />
         <StatCard label="Payments" value={formatNumber(data?.count || 0)} />
       </div>
@@ -302,7 +302,7 @@ function OutstandingFeesReportTab() {
         />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
         <StatCard label="Total outstanding" value={formatCurrency(data?.totalOutstanding || 0)} tone="brick" />
         <StatCard label="Invoices" value={formatNumber(data?.count || 0)} />
       </div>
@@ -347,7 +347,7 @@ function ExpensesReportTab() {
 
   return (
     <>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
         <DateRangeFields from={from} to={to} onFrom={setFrom} onTo={setTo} />
 
         <div className="flex-1" />
@@ -358,7 +358,7 @@ function ExpensesReportTab() {
         />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
         <StatCard label="Total expenses" value={formatCurrency(data?.total || 0)} />
         <StatCard label="Expenses recorded" value={formatNumber(data?.count || 0)} />
       </div>
@@ -386,7 +386,7 @@ function DateRangeFields({ from, to, onFrom, onTo }) {
         value={from}
         onChange={(e) => onFrom(e.target.value)}
         aria-label="From date"
-        className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+        className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
       />
       <span className="text-ink-400 text-sm">to</span>
       <input
@@ -394,7 +394,7 @@ function DateRangeFields({ from, to, onFrom, onTo }) {
         value={to}
         onChange={(e) => onTo(e.target.value)}
         aria-label="To date"
-        className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+        className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
       />
     </>
   );

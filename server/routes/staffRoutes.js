@@ -5,7 +5,7 @@ import TeacherClassAssignment from "../models/TeacherClassAssignment.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { sensitiveActionRateLimiter } from "../middleware/rateLimiters.js";
 import { createCrudController, blockDelete } from "../utils/crudFactory.js";
-import { createLogin, resetPassword, revokeLogin } from "../controllers/staffController.js";
+import { createLogin, resetPassword, revokeLogin, updateStaff } from "../controllers/staffController.js";
 import { archiveResource } from "../controllers/archiveController.js";
 
 const router = Router();
@@ -13,7 +13,7 @@ const router = Router();
 const controller = createCrudController(Staff, {
   searchFields: ["fullName", "email", "phone"],
   exactFilters: ["status", "designation"],
-  populate: "designation",
+  populate: [{ path: "designation" }, { path: "user", select: "username email status" }],
   duplicateMessage: "A conflicting staff record already exists",
   beforeDelete: async (doc) => {
     const hasAssignments = await TeacherClassAssignment.exists({ teacher: doc._id });
@@ -29,7 +29,7 @@ router.get("/", controller.list);
 router.get("/:id", controller.getOne);
 const protectLink = (req, res, next) => { delete req.body.user; next(); };
 router.post("/", protectLink, controller.create);
-router.put("/:id", protectLink, controller.update);
+router.put("/:id", protectLink, updateStaff);
 router.delete("/:id", sensitiveActionRateLimiter, archiveResource("staff"));
 
 router.post("/:id/create-login", sensitiveActionRateLimiter, createLogin);

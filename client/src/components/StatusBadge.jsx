@@ -21,7 +21,7 @@ const TONES = {
 export default function StatusBadge({ status }) {
   const tone = TONES[status] || "bg-ink-100 text-ink-600";
   return (
-    <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize ${tone}`}>
+    <span className={`inline-block max-w-full rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${tone}`}>
       {String(status).replace(/_/g, " ")}
     </span>
   );

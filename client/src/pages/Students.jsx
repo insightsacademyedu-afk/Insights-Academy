@@ -13,6 +13,7 @@ import { academicSessionsApi, classesApi, sectionsApi } from "../api/academicSet
 import { useResourceList } from "../lib/useResourceList";
 import { useToast } from "../context/ToastContext";
 import { useAuth } from "../context/AuthContext";
+import StudentParentLogin from "../components/StudentParentLogin";
 import { formatCurrency, formatDate, toDateInputValue } from "../lib/format";
 
 // Student.status has five values (not the generic active/inactive most
@@ -214,21 +215,21 @@ export default function Students() {
 
   return (
     <AppLayout title="Students">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
         <div className="relative flex-1 max-w-sm">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
           <input
             value={list.search}
             onChange={(e) => list.setSearch(e.target.value)}
             placeholder="Search name, admission #…"
-            className="w-full rounded-md border border-ink-200 bg-white pl-9 pr-3 py-2 text-sm text-ink-950 outline-none focus:border-ink-700 focus:ring-2 focus:ring-ink-700/10"
+            className="w-full rounded-md border border-ink-200 bg-surface pl-9 pr-3 py-2 text-sm text-ink-950 outline-none focus:border-ink-700 focus:ring-2 focus:ring-ink-700/10"
           />
         </div>
 
         <select
           value={list.status}
           onChange={(e) => list.setStatus(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All statuses</option>
           {STUDENT_STATUSES.map((s) => (
@@ -241,7 +242,7 @@ export default function Students() {
         <select
           value={genderFilter}
           onChange={(e) => setGenderFilter(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All genders</option>
           <option value="male">Male</option>
@@ -258,7 +259,7 @@ export default function Students() {
                 setClassFilter(e.target.value);
                 setSectionFilter("");
               }}
-              className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+              className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
             >
               <option value="">All classes</option>
               {filterClasses.map((item) => (
@@ -271,7 +272,7 @@ export default function Students() {
               value={sectionFilter}
               disabled={!classFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
-              className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <option value="">All sections</option>
               {filterSections.map((item) => (
@@ -455,8 +456,10 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
         await studentsApi.update(editing._id, payload);
         toast.success("Student updated");
       } else {
-        await studentsApi.create({ ...payload, enrollment });
-        toast.success("Student created and enrolled");
+        const result = await studentsApi.create({ ...payload, enrollment });
+        toast.success(result?.parentPortal?.created
+          ? "Student enrolled. Parent login created: use the primary phone as the login and default password."
+          : result?.parentPortal ? "Student enrolled and linked to the existing parent login. Their password stays the same." : "Student created and enrolled");
       }
       onSaved();
     } catch (err) {
@@ -476,7 +479,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
         )}
 
         <SectionHeading>Student</SectionHeading>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Full name" required>
             <TextInput required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
           </Field>
@@ -487,7 +490,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
             />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Father's name">
             <TextInput value={form.fatherName} onChange={(e) => setForm({ ...form, fatherName: e.target.value })} />
           </Field>
@@ -499,7 +502,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
             </Select>
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Date of birth" required>
             <TextInput required type="date" value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })} />
           </Field>
@@ -511,7 +514,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
             />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="CNIC / B-Form">
             <TextInput value={form.cnicOrBForm} onChange={(e) => setForm({ ...form, cnicOrBForm: e.target.value })} />
           </Field>
@@ -535,7 +538,9 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
         )}
 
         <SectionHeading>Guardian</SectionHeading>
-        <div className="grid grid-cols-2 gap-3">
+        {editing && <p className="col-span-full text-sm text-ink-600">Changes to this parent's name, primary phone or email also update their linked portal login for all siblings. A password already chosen by the parent stays the same.</p>}
+        {!editing && <p className="col-span-full text-sm text-ink-600">Parent login is created automatically. They can sign in with their name, primary phone or email below. The default password is the primary phone number exactly as entered below, including any spaces or hyphens. No country code is added. Changing it is optional and available anytime in My account. Siblings share the existing parent login and password.</p>}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Guardian name" required>
             <TextInput
               required
@@ -555,7 +560,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
             </Select>
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Primary phone" required>
             <TextInput
               required
@@ -570,7 +575,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
             />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="WhatsApp phone">
             <TextInput
               value={form.guardian.whatsappPhone}
@@ -585,7 +590,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
             />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Guardian address">
             <TextInput
               value={form.guardian.address}
@@ -601,7 +606,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
         </div>
 
         <SectionHeading>Fee structure</SectionHeading>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Field label="Monthly tuition">
             <TextInput
               type="number"
@@ -634,7 +639,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
             />
           </Field>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Field label="Other fee">
             <TextInput
               type="number"
@@ -690,7 +695,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
                 ))}
               </Select>
             </Field>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Class" required>
                 <Select
                   required
@@ -730,7 +735,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
           </>
         )}
 
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex flex-wrap justify-end gap-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
@@ -817,7 +822,7 @@ function EnrollModal({ student, sessions, onClose, onSaved }) {
             ))}
           </Select>
         </Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Class" required>
             <Select
               required
@@ -855,7 +860,7 @@ function EnrollModal({ student, sessions, onClose, onSaved }) {
         </div>
         <p className="mb-4 text-xs text-ink-500">The next roll number for this class will be assigned automatically.</p>
 
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex flex-wrap justify-end gap-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
@@ -879,9 +884,9 @@ function DetailSection({ title, children }) {
 
 function DetailRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between gap-4 text-sm">
+    <div className="flex flex-col items-start justify-between gap-1 sm:flex-row sm:gap-4 text-sm">
       <span className="text-ink-500">{label}</span>
-      <span className="text-ink-900 text-right">{value || "—"}</span>
+      <span className="min-w-0 text-ink-900 sm:text-right [overflow-wrap:anywhere]">{value || "—"}</span>
     </div>
   );
 }
@@ -949,6 +954,9 @@ function StudentDetailModal({ student, isAdmin, onClose, onEdit, onEnroll, onDel
             {s.guardian?.emergencyContact && <DetailRow label="Emergency contact" value={s.guardian.emergencyContact} />}
           </DetailSection>
 
+          {isAdmin && <StudentParentLogin studentId={s._id} accounts={detail.parentPortals}
+            onUpdated={async () => setDetail(await studentsApi.getOne(s._id))} />}
+
           {isAdmin && s.feeDetails && (
             <DetailSection title="Fee structure">
               <DetailRow label="Monthly tuition" value={formatCurrency(s.feeDetails.monthlyTuition)} />
@@ -981,7 +989,7 @@ function StudentDetailModal({ student, isAdmin, onClose, onEdit, onEnroll, onDel
           </DetailSection>
 
           {isAdmin && (
-            <div className="flex justify-end gap-2 border-t border-ink-100 pt-4">
+            <div className="flex flex-wrap justify-end gap-2 border-t border-ink-100 pt-4">
               <Button variant="ghost" onClick={() => onEnroll(student)}>
                 <ArrowRightLeft size={14} />
                 Enroll / transfer

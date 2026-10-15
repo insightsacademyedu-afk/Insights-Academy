@@ -11,7 +11,7 @@ export default function Account() {
   const { isAdmin } = useAuth();
   const academy = useAcademy();
   return <AppLayout title="My account">
-    <div className="grid max-w-5xl gap-6 lg:grid-cols-2">
+    <div className="grid max-w-5xl items-start gap-6 xl:grid-cols-2">
       {isAdmin && <AcademySettings key={academy.settings.updatedAt || academy.settings.academyName} academy={academy} />}
       <PasswordSettings />
       {isAdmin && <BackupSettings />}
@@ -20,6 +20,7 @@ export default function Account() {
 }
 
 function PasswordSettings() {
+  const { user, refreshUser } = useAuth();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -32,25 +33,29 @@ function PasswordSettings() {
     setSaving(true);
     try {
       const result = await changePassword(form);
+      await refreshUser?.();
       setForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setSuccess(result.message);
     } catch (err) { setError(err.message || 'Password could not be changed. Please try again.'); }
     finally { setSaving(false); }
   }
-  return <section className="rounded-lg border border-ink-200 bg-white p-6">
+  return <section className="rounded-lg border border-ink-200 bg-surface p-4 sm:p-6">
       <h2 className="font-display text-xl mb-2">Change password</h2>
-      <p className="text-sm text-ink-600 mb-5">Use at least 12 characters. Your other sessions will be signed out; this session stays signed in.</p>
+      {user?.role === 'guardian' && <>
+        <a className="mb-4 block text-sm underline" href="/">View my children's portal</a>
+      </>}
+      <p className="text-sm text-ink-600 mb-5">Use at least 8 characters. Your other sessions will be signed out; this session stays signed in.</p>
       {error && <p role="alert" className="mb-4 text-brick-600">{error}</p>}
-      {success && <p role="status" className="mb-4 text-green-700">{success}</p>}
+      {success && <p role="status" className="mb-4 text-moss-600">{success}</p>}
       <form onSubmit={submit}>
         {Object.entries({ currentPassword: 'Current password', newPassword: 'New password', confirmPassword: 'Confirm new password' }).map(([key, label]) =>
           <label key={key} className="block mb-4 text-sm">{label}
-            <PasswordInput required minLength={key === 'currentPassword' ? undefined : 12} maxLength={72}
+            <PasswordInput required minLength={key === 'currentPassword' ? undefined : 8} maxLength={72}
               autoComplete={key === 'currentPassword' ? 'current-password' : 'new-password'} disabled={saving}
               value={form[key]} onChange={e => setForm({ ...form, [key]: e.target.value })}
               className="mt-1" />
           </label>)}
-        <button disabled={saving} className="rounded-md bg-ink-900 px-4 py-2 text-white disabled:opacity-60">{saving ? 'Changing password…' : 'Change password'}</button>
+        <button disabled={saving} className="rounded-md bg-action-900 px-4 py-2 text-white disabled:opacity-60">{saving ? 'Changing password…' : 'Change password'}</button>
       </form>
   </section>;
 }
@@ -68,7 +73,7 @@ function AcademySettings({ academy: { settings, saveSettings } }) {
     finally { setSaving(false); }
   }
 
-  return <section className="rounded-lg border border-ink-200 bg-white p-6">
+  return <section className="rounded-lg border border-ink-200 bg-surface p-4 sm:p-6">
     <h2 className="mb-2 font-display text-xl">Academy & receipt details</h2>
     <p className="mb-5 text-sm text-ink-600">These details appear in the app and on printed payment receipts.</p>
     {message && <p role="status" className="mb-4 text-sm text-moss-600">{message}</p>}
@@ -123,13 +128,13 @@ function BackupSettings() {
     finally { setBusy(false); }
   }
 
-  return <section className="rounded-lg border border-ink-200 bg-white p-6 lg:col-span-2">
+  return <section className="rounded-lg border border-ink-200 bg-surface p-4 sm:p-6 xl:col-span-2">
     <h2 className="mb-2 font-display text-xl">Database backup & restore</h2>
     <p className="mb-4 text-sm text-ink-600">Create a backup after important changes and copy the downloaded file to a USB drive or another safe device.</p>
     {message && <p role="status" className="mb-4 break-words text-sm text-ink-700">{message}</p>}
     <div className="flex flex-wrap items-center gap-3">
       <Button type="button" onClick={create} disabled={busy}>{busy ? 'Working…' : 'Create & download backup'}</Button>
-      <input aria-label="Choose backup file" type="file" accept=".academy-backup,application/octet-stream" onChange={choose} disabled={busy} />
+      <input className="min-w-0 max-w-full text-sm" aria-label="Choose backup file" type="file" accept=".academy-backup,application/octet-stream" onChange={choose} disabled={busy} />
     </div>
     {details && <div className="mt-5 rounded-md border border-brick-600/30 bg-brick-100/40 p-4">
       <p className="text-sm"><strong>Selected backup:</strong> {new Date(details.createdAt).toLocaleString()} · {details.records} records in {details.collections} collections</p>

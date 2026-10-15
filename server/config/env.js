@@ -19,6 +19,18 @@ function required(name, fallback) {
 
 const isProd = process.env.NODE_ENV === "production";
 
+const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+if (isProd) {
+  const parsed = new URL(clientUrl);
+  if (parsed.protocol !== "https:" || parsed.origin !== clientUrl) {
+    throw new Error("CLIENT_URL must be the exact public HTTPS origin, without a trailing slash.");
+  }
+}
+const trustProxy = process.env.TRUST_PROXY ?? "0";
+if (!/^[0-5]$/.test(trustProxy)) {
+  throw new Error("TRUST_PROXY must be an integer from 0 to 5 matching your trusted proxy hop count.");
+}
+
 // Phase 10 hardening: the app would otherwise happily boot in production
 // with the exact placeholder secret checked into .env.example, or a secret
 // short enough to brute-force. Fail fast at startup instead of leaving a
@@ -45,7 +57,8 @@ export const config = {
   serveClient: isProd || process.env.SERVE_CLIENT === "true",
   port: Number(process.env.PORT) || 5000,
   host: process.env.HOST || (isProd ? "0.0.0.0" : "127.0.0.1"),
-  clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
+  clientUrl,
+  trustProxy: Number(trustProxy),
 
   mongoUri: required("MONGO_URI"),
 

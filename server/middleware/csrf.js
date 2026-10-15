@@ -19,9 +19,17 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 // httpOnly auth cookie yet. Every other state-changing route stays protected.
 const EXEMPT_PATHS = new Set(["/api/auth/login", "/api/auth/request-password-reset", "/api/auth/reset-password"]);
 
+function validToken(token) {
+  if (typeof token !== "string" || !/^[a-f0-9]{64}\.[a-f0-9]{64}$/.test(token)) return false;
+  const [nonce, signature] = token.split(".");
+  const expected = crypto.createHmac("sha256", config.jwtSecret).update(`csrf:${nonce}`).digest();
+  return crypto.timingSafeEqual(expected, Buffer.from(signature, "hex"));
+}
+
 export function issueCsrfCookie(req, res, next) {
-  if (!req.cookies?.[CSRF_COOKIE]) {
-    const token = crypto.randomBytes(32).toString("hex");
+  if (!validToken(req.cookies?.[CSRF_COOKIE])) {
+    const nonce = crypto.randomBytes(32).toString("hex");
+    const token = `${nonce}.${crypto.createHmac("sha256", config.jwtSecret).update(`csrf:${nonce}`).digest("hex")}`;
     res.cookie(CSRF_COOKIE, token, {
       httpOnly: false, // must be readable by frontend JS
       secure: config.isProd,
@@ -34,12 +42,15 @@ export function issueCsrfCookie(req, res, next) {
 
 export function verifyCsrf(req, res, next) {
   if (SAFE_METHODS.has(req.method)) return next();
+  if (req.get("origin") && req.get("origin") !== config.clientUrl) {
+    return res.status(403).json({ message: "Untrusted request origin" });
+  }
   if (EXEMPT_PATHS.has(req.path)) return next();
 
   const cookieToken = req.cookies?.[CSRF_COOKIE];
   const headerToken = req.get(CSRF_HEADER);
 
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+  if (!validToken(cookieToken) || !headerToken || cookieToken !== headerToken) {
     return res.status(403).json({ message: "Invalid or missing CSRF token" });
   }
 

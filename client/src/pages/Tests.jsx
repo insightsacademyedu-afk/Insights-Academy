@@ -190,11 +190,11 @@ export default function Tests() {
 
   return (
     <AppLayout title="Tests & Results">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
         <select
           value={sessionFilter}
           onChange={(e) => setSessionFilter(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All sessions</option>
           {lookups.sessions.map((s) => (
@@ -208,7 +208,7 @@ export default function Tests() {
         <select
           value={subjectFilter}
           onChange={(e) => setSubjectFilter(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All subjects</option>
           {lookups.subjects.map((s) => (
@@ -221,7 +221,7 @@ export default function Tests() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All statuses</option>
           <option value="draft">Draft</option>
@@ -434,7 +434,7 @@ function NewTestModal({ open, onClose, isAdmin, sessions, subjects, staffList, a
               </Select>
             </Field>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Class" required>
                 <Select
                   required
@@ -513,7 +513,7 @@ function NewTestModal({ open, onClose, isAdmin, sessions, subjects, staffList, a
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Max marks" required>
             <TextInput
               type="number"
@@ -537,7 +537,7 @@ function NewTestModal({ open, onClose, isAdmin, sessions, subjects, staffList, a
           <TextInput type="date" required value={form.testDate} onChange={(e) => setForm({ ...form, testDate: e.target.value })} />
         </Field>
 
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex flex-wrap justify-end gap-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
@@ -638,7 +638,7 @@ function TestDetailModal({
             <StatusBadge status={test.status} />
           </div>
 
-          <div className="mb-4 grid grid-cols-4 gap-2">
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
             <StatBox label="Students" value={gradeStats?.totalStudents ?? results.length} />
             <StatBox label="Passed" value={gradeStats?.passCount ?? "—"} tone="text-moss-600" />
             <StatBox label="Failed" value={gradeStats?.failCount ?? "—"} tone="text-brick-600" />
@@ -646,7 +646,7 @@ function TestDetailModal({
           </div>
 
           {canManage && test.status === "draft" && (
-            <div className="mb-4 flex gap-2">
+            <div className="mb-4 flex flex-wrap gap-2">
               <Button variant="ghost" onClick={() => setMarkEntryOpen(true)}>
                 {results.length > 0 ? "Enter / edit marks" : "Enter marks"}
               </Button>
@@ -662,8 +662,8 @@ function TestDetailModal({
           {results.length === 0 ? (
             <p className="text-sm text-ink-500">No marks entered yet.</p>
           ) : (
-            <div className="overflow-hidden rounded-md border border-ink-100">
-              <table className="w-full text-xs">
+            <div className="overflow-x-auto rounded-md border border-ink-100">
+              <table className="w-full min-w-[36rem] text-xs">
                 <thead>
                   <tr className="border-b border-ink-100 bg-ink-100/60 text-left text-ink-600">
                     <th className="px-3 py-1.5 font-medium">Student</th>
@@ -845,8 +845,8 @@ function MarkEntryModal({ open, onClose, test, existingResults, onSaved }) {
               No active students are enrolled in this exact class/section/session yet.
             </p>
           ) : (
-            <div className="mb-4 max-h-96 overflow-y-auto rounded-md border border-ink-100">
-              <table className="w-full text-xs">
+            <div className="mb-4 max-h-96 overflow-auto rounded-md border border-ink-100">
+              <table className="w-full min-w-[36rem] text-xs">
                 <thead className="sticky top-0 bg-ink-100/90">
                   <tr className="border-b border-ink-100 text-left text-ink-600">
                     <th className="px-3 py-1.5 font-medium">Roll #</th>
@@ -887,7 +887,7 @@ function MarkEntryModal({ open, onClose, test, existingResults, onSaved }) {
             </div>
           )}
 
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-wrap justify-end gap-2 mt-2">
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>
@@ -960,7 +960,7 @@ function AmendModal({ open, onClose, test, result, onSaved }) {
           <Field label="Reason" required>
             <TextArea required value={reason} onChange={(e) => setReason(e.target.value)} />
           </Field>
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-wrap justify-end gap-2 mt-2">
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>

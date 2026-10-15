@@ -1,4 +1,7 @@
 import mongoose from "mongoose";
+import User from "../models/User.js";
+import { phonePassword, provisionParent } from "../utils/parentLogin.js";
+import { normalizeLoginPhone } from "../utils/loginIdentity.js";
 import Student from "../models/Student.js";
 import Guardian from "../models/Guardian.js";
 import StudentClassAssignment from "../models/StudentClassAssignment.js";
@@ -122,6 +125,7 @@ export async function getOne(req, res, next) {
     res.json({
       student: shapeForRole(student, req.user.role),
       currentAssignment: currentAssignment || null,
+      ...(req.user.role === "admin" ? { parentPortals: (await User.find({ role: "guardian", studentIds: student._id }).select("displayName phone phoneAsEntered email status mustChangePassword").lean()).map(account => ({ ...account, phone: account.phoneAsEntered || (normalizeLoginPhone(student.guardian?.primaryPhone) === account.phone ? student.guardian.primaryPhone : account.phone) })) } : {}),
     });
   } catch (err) {
     next(err);
@@ -172,7 +176,8 @@ export async function create(req, res, next) {
         { session }
       );
 
-      result = { student: studentDoc, guardian: guardianDoc, assignment: assignmentDoc };
+      const parentPortal = await provisionParent(guardianDoc, studentDoc._id, session);
+      result = { student: studentDoc, guardian: guardianDoc, assignment: assignmentDoc, parentPortal };
     });
 
     res.status(201).json(result);
@@ -208,9 +213,28 @@ export async function update(req, res, next) {
       if (guardian) {
         const contact = await Guardian.findById(student.guardian).session(session);
         if (!contact) throw Object.assign(new Error("Guardian not found"), { status: 400 });
+        const previousPhone = normalizeLoginPhone(contact.primaryPhone);
         const { _id: guardianId, __v: version, createdAt: created, updatedAt: modified, ...contactFields } = guardian;
         contact.set(contactFields);
         await contact.save({ session });
+        const account = await User.findOne({ role: "guardian", studentIds: student._id, phone: previousPhone }).select("+passwordHash").session(session);
+        if (account) {
+          const phone = normalizeLoginPhone(contact.primaryPhone);
+          if (!phone) throw Object.assign(new Error("Enter a valid primary phone number for the parent login."), { status: 400 });
+          const email = contact.email?.trim().toLowerCase() || undefined;
+          if (account.phone !== phone || account.phoneAsEntered !== contact.primaryPhone || account.email !== email || account.displayName !== contact.fullName) {
+            const oldPhone = account.phoneAsEntered || (/^923\d{9}$/.test(previousPhone) ? `0${previousPhone.slice(2)}` : previousPhone);
+            if (account.phoneAsEntered !== contact.primaryPhone && await account.comparePassword(oldPhone)) {
+              account.passwordHash = await User.hashPassword(phonePassword(contact.primaryPhone));
+            }
+            account.phone = phone;
+            account.phoneAsEntered = contact.primaryPhone;
+            account.email = email;
+            account.displayName = contact.fullName;
+            account.tokenVersion += 1;
+            await account.save({ session });
+          }
+        }
       }
       updated = await Student.findById(student._id).session(session).populate("guardian");
     });
@@ -221,7 +245,7 @@ export async function update(req, res, next) {
       return res.status(400).json({ message: err.message });
     }
     if (err.code === 11000) {
-      return res.status(409).json({ message: "That admission number is already in use" });
+      return res.status(409).json({ message: "That admission number or parent login phone/email is already in use. Check the details and try again." });
     }
     next(err);
   }

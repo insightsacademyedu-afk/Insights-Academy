@@ -2,6 +2,7 @@ import { config } from '../config/env.js';
 import mongoose from 'mongoose';
 import { readdirSync } from 'node:fs';
 import { sourceDatabase } from '../../backup/common.mjs';
+import { ensureUserEmailIndex } from './userEmailIndex.js';
 const args=process.argv.slice(2);
 try {
   const expected=args[args.indexOf('--confirm-db')+1];
@@ -15,6 +16,8 @@ try {
   try{indexes=await collection.indexes();}catch(error){if(error.code!==26)throw error;}
   const legacy=indexes.find(index=>index.name==='sourceSalaryPayment_1' && index.unique && index.sparse && index.key.sourceSalaryPayment===1 && Object.keys(index.key).length===1);
   console.log(`[database] ${apply?'APPLY':'PREVIEW'} database=${expected}`);
+  console.log('[database] Ensure sparse unique email index for phone-only guardian accounts');
+  if(apply) await ensureUserEmailIndex(mongoose.connection.collection('users'));
   if(legacy) {
     console.log('[database] Replace legacy salary-expense sparse index with an ObjectId-only partial unique index');
     if(apply) await collection.dropIndex(legacy.name);

@@ -36,5 +36,6 @@ describe("local settings and database protection", () => {
     const restored = await withCsrf(admin.agent.post("/api/backups/restore").set("Content-Type", "application/octet-stream").set("x-restore-confirmation", "RESTORE").send(backup.body), admin.csrfToken);
     expect(restored.status).toBe(200);
     expect((await AcademySettings.findById("academy")).academyName).toBe("Before backup");
+    expect((await admin.agent.get("/api/auth/me")).status).toBe(401);
   });
 });

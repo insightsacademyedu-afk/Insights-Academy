@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ensureUserEmailIndex } from "../utils/userEmailIndex.js";
 
 export async function connectDB() {
   const uri = process.env.MONGO_URI;
@@ -19,6 +20,10 @@ export async function connectDB() {
     connectTimeoutMS: toPositiveInt("MONGO_CONNECT_TIMEOUT_MS", 10000),
     socketTimeoutMS: toPositiveInt("MONGO_SOCKET_TIMEOUT_MS", 30000),
     serverSelectionTimeoutMS: toPositiveInt("MONGO_SERVER_SELECTION_TIMEOUT_MS", 5000),
+  });
+  await ensureUserEmailIndex(mongoose.connection.collection("users"));
+  await mongoose.connection.collection("users").createIndex({ phone: 1 }, {
+    unique: true, name: "guardian_phone_unique", partialFilterExpression: { role: "guardian", phone: { $type: "string" } },
   });
   console.log(`[db] connected to MongoDB (${mongoose.connection.name})`);
   mongoose.connection.on("error", (error) => console.error("[db] connection error:", error.message));

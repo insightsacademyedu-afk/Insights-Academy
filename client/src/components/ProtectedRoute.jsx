@@ -21,5 +21,9 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
     return <Navigate to="/" replace />;
   }
 
+  if (user.role === "guardian" && !["/", "/account"].includes(location.pathname)) {
+    return <Navigate to="/" replace />;
+  }
+
   return children;
 }

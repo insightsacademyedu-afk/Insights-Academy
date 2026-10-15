@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "nodemon server.js",
+    "dev": "node --watch server.js",
     "start": "node server.js",
     "seed:admin": "node utils/seedAdmin.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
@@ -26,13 +26,15 @@
     "nodemailer": "^10.0.10"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
+    "jest": "^30.5.2",
     "mongodb-memory-server": "^10.1.2",
-    "nodemon": "^3.1.4",
     "supertest": "^7.0.0"
   },
   "overrides": {
-    "qs": "6.16.0"
+    "qs": "6.16.0",
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.1.1"
+    }
   },
   "engines": {
     "node": ">=22.12.0"

@@ -16,7 +16,7 @@ describe("Phase 1 — Auth & RBAC core", () => {
 
     const res = await request(app)
       .post("/api/auth/login")
-      .send({ username: "jdoe", password: "CorrectHorse123!" });
+      .send({ role: "admin", username: "jdoe", password: "CorrectHorse123!" });
 
     expect(res.status).toBe(200);
     expect(res.body.user.username).toBe("jdoe");
@@ -31,19 +31,19 @@ describe("Phase 1 — Auth & RBAC core", () => {
 
     const res = await request(app)
       .post("/api/auth/login")
-      .send({ username: "jdoe", password: "WrongPassword!" });
+      .send({ role: "admin", username: "jdoe", password: "WrongPassword!" });
 
     expect(res.status).toBe(401);
-    expect(res.body.message).toMatch(/invalid username or password/i);
+    expect(res.body.message).toMatch(/invalid login details or password/i);
   });
 
   test("nonexistent username gets the SAME generic message as a wrong password (no user enumeration)", async () => {
     const res = await request(app)
       .post("/api/auth/login")
-      .send({ username: "does-not-exist", password: "whatever123" });
+      .send({ role: "admin", username: "does-not-exist", password: "whatever123" });
 
     expect(res.status).toBe(401);
-    expect(res.body.message).toMatch(/invalid username or password/i);
+    expect(res.body.message).toMatch(/invalid login details or password/i);
   });
 
   test("5 consecutive failed attempts locks the account for the configured window", async () => {
@@ -51,12 +51,12 @@ describe("Phase 1 — Auth & RBAC core", () => {
     const agent = request.agent(app);
 
     for (let i = 0; i < 5; i++) {
-      const res = await agent.post("/api/auth/login").send({ username: "lockme", password: "wrong" });
+      const res = await agent.post("/api/auth/login").send({ role: "admin", username: "lockme", password: "wrong" });
       expect(res.status).toBe(401);
     }
 
     // 6th attempt — even with the CORRECT password — should now be locked.
-    const lockedRes = await agent.post("/api/auth/login").send({ username: "lockme", password: "CorrectHorse123!" });
+    const lockedRes = await agent.post("/api/auth/login").send({ role: "admin", username: "lockme", password: "CorrectHorse123!" });
     expect(lockedRes.status).toBe(423);
     expect(lockedRes.body.message).toMatch(/locked/i);
 
@@ -71,7 +71,7 @@ describe("Phase 1 — Auth & RBAC core", () => {
 
     await makeUser({ username: "meuser", password: "CorrectHorse123!" });
     const agent = request.agent(app);
-    await agent.post("/api/auth/login").send({ username: "meuser", password: "CorrectHorse123!" });
+    await agent.post("/api/auth/login").send({ role: "admin", username: "meuser", password: "CorrectHorse123!" });
 
     const meRes = await agent.get("/api/auth/me");
     expect(meRes.status).toBe(200);
@@ -81,7 +81,7 @@ describe("Phase 1 — Auth & RBAC core", () => {
   test("logout clears the auth cookie and subsequent /me calls fail", async () => {
     await makeUser({ username: "byeuser", password: "CorrectHorse123!" });
     const agent = request.agent(app);
-    const loginRes = await agent.post("/api/auth/login").send({ username: "byeuser", password: "CorrectHorse123!" });
+    const loginRes = await agent.post("/api/auth/login").send({ role: "admin", username: "byeuser", password: "CorrectHorse123!" });
     const csrfToken = extractCookieValue(loginRes, "ams_csrf");
 
     expect((await agent.get("/api/auth/me")).status).toBe(200);
@@ -96,7 +96,7 @@ describe("Phase 1 — Auth & RBAC core", () => {
   test("deactivating a user invalidates their existing session immediately (not just on token expiry)", async () => {
     const user = await makeUser({ username: "deactme", password: "CorrectHorse123!" });
     const agent = request.agent(app);
-    await agent.post("/api/auth/login").send({ username: "deactme", password: "CorrectHorse123!" });
+    await agent.post("/api/auth/login").send({ role: "admin", username: "deactme", password: "CorrectHorse123!" });
 
     expect((await agent.get("/api/auth/me")).status).toBe(200);
 
@@ -112,7 +112,7 @@ describe("Phase 1 — Auth & RBAC core", () => {
   test("bumping tokenVersion alone invalidates the existing cookie (forced logout everywhere)", async () => {
     const user = await makeUser({ username: "bumpme", password: "CorrectHorse123!" });
     const agent = request.agent(app);
-    await agent.post("/api/auth/login").send({ username: "bumpme", password: "CorrectHorse123!" });
+    await agent.post("/api/auth/login").send({ role: "admin", username: "bumpme", password: "CorrectHorse123!" });
 
     expect((await agent.get("/api/auth/me")).status).toBe(200);
 
@@ -128,7 +128,7 @@ describe("Phase 1 — Auth & RBAC core", () => {
     const agent = request.agent(app);
 
     // Login is CSRF-exempt and should succeed with no x-csrf-token header.
-    const loginRes = await agent.post("/api/auth/login").send({ username: "csrfuser", password: "CorrectHorse123!" });
+    const loginRes = await agent.post("/api/auth/login").send({ role: "admin", username: "csrfuser", password: "CorrectHorse123!" });
     expect(loginRes.status).toBe(200);
 
     // But logout (a normal mutating route) should be rejected without the header.

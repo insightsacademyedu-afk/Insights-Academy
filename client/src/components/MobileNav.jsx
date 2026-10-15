@@ -1,27 +1,28 @@
 import { NavLink } from "react-router-dom";
 import { X, Lock } from "lucide-react";
-import { NAV_SECTIONS, CURRENT_PHASE } from "../lib/nav";
+import { NAV_SECTIONS, CURRENT_PHASE, canAccessNav } from "../lib/nav";
 import { useAuth } from "../context/AuthContext";
-import { useAcademy } from "../context/academy";
+import AcademyBrand from "./AcademyBrand";
+import { useMenuScroll } from "../lib/useMenuScroll";
 
 export default function MobileNav({ open, onClose }) {
   const { user } = useAuth();
-  const { settings } = useAcademy();
+  const menuScroll = useMenuScroll("mobile", user);
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-30 md:hidden">
-      <div className="absolute inset-0 bg-ink-950/40" onClick={onClose} />
-      <div className="absolute left-0 top-0 h-full w-72 bg-ink-950 text-paper-100 overflow-y-auto">
+      <div className="absolute inset-0 bg-slate-950/60" onClick={onClose} />
+      <div {...menuScroll} className="theme-navigation absolute left-0 top-0 h-full w-72 max-w-[calc(100vw-2rem)] bg-ink-950 text-paper-100 overflow-y-auto">
         <div className="flex items-center justify-between px-5 py-5 border-b border-ink-800">
-          <span className="max-w-56 truncate font-display text-lg">{settings.academyName}</span>
+          <AcademyBrand dark compact />
           <button onClick={onClose} aria-label="Close navigation">
             <X size={20} />
           </button>
         </div>
         <nav className="px-3 py-4 space-y-6">
           {NAV_SECTIONS.map((section) => {
-            const items = section.items.filter((item) => !item.adminOnly || user?.role === "admin");
+            const items = section.items.filter((item) => canAccessNav(item, user?.role));
             if (!items.length) return null;
             return (
               <div key={section.label}>

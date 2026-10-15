@@ -115,13 +115,13 @@ export default function Fees() {
 
   return (
     <AppLayout title="Fees">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
         <StudentFilterInput value={studentFilter} onChange={setStudentFilter} />
 
         <select
           value={sessionFilter}
           onChange={(e) => setSessionFilter(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All sessions</option>
           {sessions.map((s) => (
@@ -135,7 +135,7 @@ export default function Fees() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All statuses</option>
           {INVOICE_STATUSES.map((s) => (
@@ -148,7 +148,7 @@ export default function Fees() {
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+          className="rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
         >
           <option value="">All types</option>
           {INVOICE_TYPES.map((t) => (
@@ -239,7 +239,7 @@ function StudentFilterInput({ value, onChange }) {
 
   if (value) {
     return (
-      <div className="flex items-center gap-1.5 rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800">
+      <div className="flex items-center gap-1.5 rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800">
         <span className="font-medium text-ink-900">{value.fullName}</span>
         <span className="text-ink-400">({value.admissionNumber})</span>
         <button
@@ -267,10 +267,10 @@ function StudentFilterInput({ value, onChange }) {
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder="Filter by student…"
-        className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-950 outline-none focus:border-ink-700 focus:ring-2 focus:ring-ink-700/10"
+        className="w-full rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-950 outline-none focus:border-ink-700 focus:ring-2 focus:ring-ink-700/10"
       />
       {open && results.length > 0 && (
-        <div className="absolute z-20 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-ink-200 bg-white shadow-lg shadow-ink-950/10">
+        <div className="absolute z-20 mt-1 w-full max-h-64 overflow-y-auto rounded-md border border-ink-200 bg-surface shadow-lg shadow-ink-950/10">
           {results.map((s) => (
             <button
               key={s._id}
@@ -375,7 +375,7 @@ function NewInvoiceModal({ open, onClose, sessions, defaultSession, onSaved }) {
           <InlineStudentPicker value={student} onChange={setStudent} />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Academic session" required>
             <Select required value={academicSession} onChange={(e) => setAcademicSession(e.target.value)}>
               <option value="" disabled>
@@ -399,7 +399,7 @@ function NewInvoiceModal({ open, onClose, sessions, defaultSession, onSaved }) {
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Period" required>
             <TextInput
               required
@@ -419,7 +419,7 @@ function NewInvoiceModal({ open, onClose, sessions, defaultSession, onSaved }) {
         </label>
 
         {useOverrides && (
-          <div className="mb-4 grid grid-cols-2 gap-3 rounded-md border border-ink-100 bg-paper-100/60 p-3">
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-md border border-ink-100 bg-paper-100/60 p-3">
             {OVERRIDE_FIELDS.map((f) => (
               <Field key={f.key} label={f.label}>
                 <TextInput
@@ -437,7 +437,7 @@ function NewInvoiceModal({ open, onClose, sessions, defaultSession, onSaved }) {
           </div>
         )}
 
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex flex-wrap justify-end gap-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
@@ -504,7 +504,7 @@ function InlineStudentPicker({ value, onChange }) {
         placeholder="Search by name or admission #…"
       />
       {open && results.length > 0 && (
-        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-md border border-ink-200 bg-white shadow-lg shadow-ink-950/10">
+        <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-md border border-ink-200 bg-surface shadow-lg shadow-ink-950/10">
           {results.map((s) => (
             <button
               key={s._id}
@@ -626,7 +626,7 @@ function BulkGenerateModal({ open, onClose, sessions, defaultSession, onDone }) 
             </Select>
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Class" required>
               <Select
                 required
@@ -663,7 +663,7 @@ function BulkGenerateModal({ open, onClose, sessions, defaultSession, onDone }) 
             </Field>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Invoice type" required>
               <Select
                 required
@@ -689,7 +689,7 @@ function BulkGenerateModal({ open, onClose, sessions, defaultSession, onDone }) 
             </Field>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Period" required>
               <TextInput
                 required
@@ -708,7 +708,7 @@ function BulkGenerateModal({ open, onClose, sessions, defaultSession, onDone }) 
             </Field>
           </div>
 
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-wrap justify-end gap-2 mt-2">
             <Button type="button" variant="ghost" onClick={handleClose}>
               Cancel
             </Button>
@@ -719,7 +719,7 @@ function BulkGenerateModal({ open, onClose, sessions, defaultSession, onDone }) 
         </form>
       ) : (
         <div>
-          <div className="mb-4 grid grid-cols-2 gap-3">
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="rounded-md border border-moss-600/30 bg-moss-100 px-3 py-3 text-center">
               <div className="font-tabular text-2xl text-moss-600">{result.createdCount}</div>
               <div className="text-xs text-moss-600">created</div>
@@ -913,8 +913,13 @@ function printReceipt(payment, invoice, settings) {
   const doc = popup.document;
   doc.title = `Receipt ${payment.receiptNumber}`;
   const style = doc.createElement('style');
-  style.textContent = 'body{font-family:Arial,sans-serif;color:#172033;padding:32px;max-width:520px;margin:auto}h1{text-align:center;margin:0 0 4px}p{text-align:center;margin:4px}.line{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:10px 0}.total{font-size:20px;font-weight:bold}.footer{margin-top:32px;border-top:1px solid #aaa;padding-top:16px;white-space:pre-wrap}@media print{body{padding:0}}';
+  style.textContent = 'body{font-family:Arial,sans-serif;color:#172033;padding:32px;max-width:520px;margin:auto}h1{text-align:center;margin:0 0 4px}p{text-align:center;margin:4px}.academy-mark{display:block;width:52px;height:54px;margin:0 auto 12px}.line{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:10px 0}.total{font-size:20px;font-weight:bold}.footer{margin-top:32px;border-top:1px solid #aaa;padding-top:16px;white-space:pre-wrap}@media print{body{padding:0}}';
   doc.head.appendChild(style);
+  const logo = doc.createElement('img');
+  logo.src = new URL('/branding/insights-mark.svg', window.location.href).href;
+  logo.alt = 'Insights Academy';
+  logo.className = 'academy-mark';
+  doc.body.appendChild(logo);
   const add = (tag, text, className = '') => { const node = doc.createElement(tag); node.textContent = text; if (className) node.className = className; doc.body.appendChild(node); return node; };
   add('h1', settings.receiptName || settings.academyName || 'Academy Management');
   const phone = settings.receiptPhone || settings.academyPhone;
@@ -932,7 +937,12 @@ function printReceipt(payment, invoice, settings) {
     left.textContent = label; right.textContent = value; row.append(left, right);
   }
   if (settings.receiptFooter) add('div', settings.receiptFooter, 'footer');
-  popup.focus(); popup.print();
+  const print = () => { popup.focus(); popup.print(); };
+  if (logo.complete) print();
+  else {
+    logo.addEventListener('load', print, { once: true });
+    logo.addEventListener('error', print, { once: true });
+  }
 }
 
 // Marks the remaining balance as administratively excused rather than
@@ -986,7 +996,7 @@ function WaiveInvoiceModal({ open, onClose, invoice, onSaved }) {
             onChange={(e) => setReason(e.target.value)}
           />
         </Field>
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex flex-wrap justify-end gap-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
@@ -1079,7 +1089,7 @@ function RecordPaymentModal({ open, onClose, invoice, outstanding, onSaved }) {
         <Field label="Notes">
           <TextArea value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
-        <div className="flex justify-end gap-2 mt-2">
+        <div className="flex flex-wrap justify-end gap-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>

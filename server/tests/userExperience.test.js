@@ -14,22 +14,22 @@ for(const [role,make] of [['admin',createAdminSession],['staff',createTeacherSes
  test(`${role} changes own password, old password and other sessions stop working`,async()=>{
   const {agent,user,csrfToken}=await make(app);
   const other=request.agent(app);
-  await other.post('/api/auth/login').send({username:user.username,password:'Password123!'});
-  const response=await withCsrf(agent.post('/api/auth/change-password').send({currentPassword:'Password123!',newPassword:'NewSecurePassword456!',confirmPassword:'NewSecurePassword456!'}),csrfToken);
+  await other.post('/api/auth/login').send({ role,username:user.username,password:'Password123!'});
+  const response=await withCsrf(agent.post('/api/auth/change-password').send({currentPassword:'Password123!',newPassword:'NewPass8',confirmPassword:'NewPass8'}),csrfToken);
   expect(response.status).toBe(200);expect(response.body.passwordHash).toBeUndefined();
   expect((await agent.get('/api/auth/me')).status).toBe(200);
   expect((await other.get('/api/auth/me')).status).toBe(401);
-  expect((await request(app).post('/api/auth/login').send({username:user.username,password:'Password123!'})).status).toBe(401);
-  expect((await request(app).post('/api/auth/login').send({username:user.username,password:'NewSecurePassword456!'})).status).toBe(200);
+  expect((await request(app).post('/api/auth/login').send({ role,username:user.username,password:'Password123!'})).status).toBe(401);
+  expect((await request(app).post('/api/auth/login').send({ role,username:user.username,password:'NewPass8'})).status).toBe(200);
   expect((await User.findById(user._id)).tokenVersion).toBe(1);
  });
 }
 test('password change rejects wrong current password, mismatch, short, reused and overlong UTF-8 values without changing credentials',async()=>{
  const {agent,csrfToken,user}=await createAdminSession(app);
  for(const values of [
-  {currentPassword:'wrong',newPassword:'NewSecurePassword456!',confirmPassword:'NewSecurePassword456!'},
-  {currentPassword:'Password123!',newPassword:'NewSecurePassword456!',confirmPassword:'different'},
-  {currentPassword:'Password123!',newPassword:'short',confirmPassword:'short'},
+  {currentPassword:'wrong',newPassword:'NewPass8',confirmPassword:'NewPass8'},
+  {currentPassword:'Password123!',newPassword:'NewPass8',confirmPassword:'different'},
+  {currentPassword:'Password123!',newPassword:'short77',confirmPassword:'short77'},
   {currentPassword:'Password123!',newPassword:'Password123!',confirmPassword:'Password123!'},
   {currentPassword:'Password123!',newPassword:'🔐'.repeat(20),confirmPassword:'🔐'.repeat(20)}
  ])expect((await withCsrf(agent.post('/api/auth/change-password').send(values),csrfToken)).status).toBe(400);

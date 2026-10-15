@@ -147,7 +147,7 @@ function ClassPanel({ sessions, sessionFilter, onSessionFilterChange, list, sele
       <select
         value={sessionFilter}
         onChange={(e) => onSessionFilterChange(e.target.value)}
-        className="w-full mb-3 rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
+        className="w-full mb-3 rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-700"
       >
         <option value="">All sessions</option>
         {sessions.map((s) => (
@@ -178,7 +178,7 @@ function ClassPanel({ sessions, sessionFilter, onSessionFilterChange, list, sele
               key={row._id}
               onClick={() => onSelect(row)}
               className={`w-full flex items-center justify-between gap-2 rounded-md px-3 py-2.5 text-left text-sm transition-colors ${
-                selected?._id === row._id ? "bg-ink-900 text-paper-50" : "hover:bg-paper-200 text-ink-800"
+                selected?._id === row._id ? "bg-action-900 text-white" : "hover:bg-paper-200 text-ink-800"
               }`}
             >
               <span className="flex items-center gap-2 min-w-0">
@@ -192,7 +192,7 @@ function ClassPanel({ sessions, sessionFilter, onSessionFilterChange, list, sele
               <span className="flex items-center gap-0.5 shrink-0">
                 <span
                   onClick={(e) => openEdit(row, e)}
-                  className={`p-1 rounded ${selected?._id === row._id ? "hover:bg-ink-800" : "hover:bg-ink-100"}`}
+                  className={`p-1 rounded ${selected?._id === row._id ? "hover:bg-action-800" : "hover:bg-ink-100"}`}
                 >
                   <Pencil size={12} />
                 </span>
@@ -202,7 +202,7 @@ function ClassPanel({ sessions, sessionFilter, onSessionFilterChange, list, sele
                     setDeleteTarget(row);
                   }}
                   title={`Archive ${row.name}`}
-                  className={`p-1 rounded ${selected?._id === row._id ? "hover:bg-ink-800" : "hover:bg-brick-100"}`}
+                  className={`p-1 rounded ${selected?._id === row._id ? "hover:bg-action-800" : "hover:bg-brick-100"}`}
                 >
                   <Trash2 size={12} />
                 </span>
@@ -248,7 +248,7 @@ function ClassPanel({ sessions, sessionFilter, onSessionFilterChange, list, sele
               <option value="inactive">Inactive</option>
             </Select>
           </Field>
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-wrap justify-end gap-2 mt-2">
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
@@ -364,9 +364,9 @@ function SectionPanel({ klass, toast }) {
           {list.items.map((row) => (
             <div
               key={row._id}
-              className="flex items-center justify-between rounded-md border border-ink-200 px-3.5 py-2.5"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-ink-200 px-3.5 py-2.5"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span className="font-medium text-ink-900 text-sm">Section {row.name}</span>
                 <StatusBadge status={row.status} />
               </div>
@@ -408,7 +408,7 @@ function SectionPanel({ klass, toast }) {
               <option value="inactive">Inactive</option>
             </Select>
           </Field>
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="flex flex-wrap justify-end gap-2 mt-2">
             <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>

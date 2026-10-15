@@ -1,35 +1,25 @@
 import { NavLink } from "react-router-dom";
 import { Lock } from "lucide-react";
-import { NAV_SECTIONS, CURRENT_PHASE } from "../lib/nav";
+import { NAV_SECTIONS, CURRENT_PHASE, canAccessNav } from "../lib/nav";
 import { useAuth } from "../context/AuthContext";
 import { useAcademy } from "../context/academy";
+import AcademyBrand from "./AcademyBrand";
+import { useMenuScroll } from "../lib/useMenuScroll";
 
 export default function Sidebar() {
   const { user } = useAuth();
   const { settings } = useAcademy();
+  const menuScroll = useMenuScroll("sidebar", user);
 
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col bg-ink-950 text-paper-100">
+    <aside className="theme-navigation hidden md:flex w-64 shrink-0 flex-col bg-ink-950 text-paper-100">
       <div className="flex items-center gap-3 px-6 py-6 border-b border-ink-800">
-        <svg viewBox="0 0 32 32" className="h-8 w-8 shrink-0">
-          <path
-            d="M16 6 L26 11 V16 C26 22 21.5 25.8 16 27 C10.5 25.8 6 22 6 16 V11 Z"
-            fill="none"
-            stroke="#C7952F"
-            strokeWidth="1.6"
-          />
-          <line x1="16" y1="10" x2="16" y2="22" stroke="#C7952F" strokeWidth="1.2" />
-          <line x1="11" y1="13" x2="21" y2="13" stroke="#C7952F" strokeWidth="1.2" />
-        </svg>
-        <div>
-          <div className="font-display text-lg leading-tight">Ledger</div>
-          <div className="max-w-40 truncate text-[11px] text-ink-300 leading-tight" title={settings.academyName}>{settings.academyName}</div>
-        </div>
+        <AcademyBrand dark compact />
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-6">
+      <nav {...menuScroll} aria-label="Main navigation" className="min-h-0 flex-1 overflow-y-auto px-3 py-5 space-y-6">
         {NAV_SECTIONS.map((section) => {
-          const items = section.items.filter((item) => !item.adminOnly || user?.role === "admin");
+          const items = section.items.filter((item) => canAccessNav(item, user?.role));
           if (!items.length) return null;
           return (
             <div key={section.label}>
@@ -79,7 +69,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="px-6 py-4 border-t border-ink-800 text-[11px] text-ink-500">
+      <div className="px-6 py-4 [overflow-wrap:anywhere] border-t border-ink-800 text-[11px] text-ink-500">
         {settings.academyPhone || settings.academyName}
       </div>
     </aside>

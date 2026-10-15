@@ -31,11 +31,13 @@ import reportRoutes from "./routes/reportRoutes.js";
 import archiveRoutes from "./routes/archiveRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 import backupRoutes from "./routes/backupRoutes.js";
+import guardianAccountRoutes from "./routes/guardianAccountRoutes.js";
+import guardianPortalRoutes from "./routes/guardianPortalRoutes.js";
 
 const app = express();
 
 // --- Security & parsing middleware ---
-app.set("trust proxy", process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) : false); // needed for correct client IPs behind Render/Railway/etc.
+app.set("trust proxy", config.trustProxy || false);
 app.use(helmet());
 app.use(
   cors({
@@ -45,6 +47,13 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+app.use((req, res, next) => {
+  // API filters are scalar strings; never pass attacker-supplied selector objects to MongoDB.
+  if (Object.values(req.query).some(value => typeof value !== "string")) {
+    return res.status(400).json({ message: "Query parameters must be single string values" });
+  }
+  next();
+});
 app.use(mongoSanitize()); // strips $/. operators from req.body/query/params
 
 if (!config.isProd && !config.serveClient) {
@@ -52,6 +61,10 @@ if (!config.isProd && !config.serveClient) {
 }
 
 app.use(apiRateLimiter);
+app.use("/api", (_req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
 app.use(issueCsrfCookie);
 app.use(verifyCsrf);
 
@@ -61,6 +74,8 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/guardians", guardianAccountRoutes);
+app.use("/api/guardian-portal", guardianPortalRoutes);
 app.use("/api/academic-sessions", academicSessionRoutes);
 app.use("/api/classes", classRoutes);
 app.use("/api/sections", sectionRoutes);

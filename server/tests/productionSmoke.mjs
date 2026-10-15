@@ -28,3 +28,18 @@ test('production refuses weak JWT configuration before connecting to a database'
   const r=spawnSync(process.execPath,['--input-type=module','-e','import "./config/env.js"'],{cwd:new URL('../',import.meta.url),env:{...process.env,JWT_SECRET:'secret'},encoding:'utf8',windowsHide:true});
   assert.notEqual(r.status,0);assert.match(r.stderr,/JWT_SECRET/);
 });
+
+test('production rejects insecure origins and invalid proxy configuration',()=>{
+  for (const override of [{CLIENT_URL:'http://academy.example'}, {CLIENT_URL:'https://academy.example/'}, {TRUST_PROXY:'true'}, {TRUST_PROXY:'-1'}]) {
+    const r=spawnSync(process.execPath,['--input-type=module','-e','import "./config/env.js"'],{cwd:new URL('../',import.meta.url),env:{...process.env,...override},encoding:'utf8',windowsHide:true});
+    assert.notEqual(r.status,0);
+    assert.match(r.stderr,/CLIENT_URL|TRUST_PROXY/);
+  }
+});
+
+test('production login rate limit rejects the 21st attempt',async()=>{
+  for(let i=0;i<20;i++) {
+    assert.equal((await request(app).post('/api/auth/login').send({})).status,400);
+  }
+  assert.equal((await request(app).post('/api/auth/login').send({})).status,429);
+});

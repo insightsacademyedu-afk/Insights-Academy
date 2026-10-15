@@ -28,7 +28,7 @@ try {
     for(const cookie of res.headers.getSetCookie()){const part=cookie.split(';')[0],index=part.indexOf('=');jar.set(part.slice(0,index),part.slice(index+1));}
     const data=await res.json();assert.ok(res.ok,`${method} ${path}: ${res.status} ${data.message}`);return data;
   }
-  await api('/auth/login',{username:'smoke-admin',password:'LocalSmokeOnly123!'});
+  await api('/auth/login',{role:'admin',username:'smoke-admin',password:'LocalSmokeOnly123!'});
   const session=await api('/academic-sessions',{name:'Smoke 2030',startDate:'2030-01-01',endDate:'2030-12-31',isCurrent:true});
   const klass=await api('/classes',{name:'Smoke Class',academicSession:session._id});
   const section=await api('/sections',{name:'A',class:klass._id});

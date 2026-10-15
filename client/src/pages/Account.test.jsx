@@ -14,10 +14,11 @@ function form(current='OldPassword123!',next='NewPassword456!',confirm=next){
  fireEvent.change(screen.getByLabelText('Confirm new password'),{target:{value:confirm}});
  fireEvent.click(screen.getByRole('button',{name:'Change password'}));
 }
-for(const accountRole of ['admin','staff'])test(`${accountRole} can submit account password form and fields clear on success`,async()=>{
+for(const accountRole of ['admin','staff','guardian'])test(`${accountRole} can submit account password form and fields clear on success`,async()=>{
  role=accountRole;changePassword.mockResolvedValue({message:'Password changed. Other sessions have been signed out.'});
- form();expect(await screen.findByRole('status')).toHaveTextContent('Password changed');
- expect(changePassword).toHaveBeenCalledWith({currentPassword:'OldPassword123!',newPassword:'NewPassword456!',confirmPassword:'NewPassword456!'});
+ form('OldPassword123!','NewPass8');expect(await screen.findByRole('status')).toHaveTextContent('Password changed');
+ expect(changePassword).toHaveBeenCalledWith({currentPassword:'OldPassword123!',newPassword:'NewPass8',confirmPassword:'NewPass8'});
+ expect(screen.getByLabelText('New password')).toHaveAttribute('minlength','8');
  expect(screen.getByLabelText('Current password')).toHaveValue('');
 });
 test('mismatch is explained without sending credentials',()=>{form('OldPassword123!','NewPassword456!','Mismatched123!');expect(screen.getByRole('alert')).toHaveTextContent('do not match');expect(changePassword).not.toHaveBeenCalled();});

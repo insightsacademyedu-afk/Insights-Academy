@@ -23,6 +23,9 @@ async function run() {
     );
     process.exit(1);
   }
+  if (typeof password !== "string" || password.length < 8 || Buffer.byteLength(password, "utf8") > 72) {
+    throw new Error("SEED_ADMIN_PASSWORD must contain at least 8 characters and at most 72 UTF-8 bytes.");
+  }
 
   await connectDB();
 
