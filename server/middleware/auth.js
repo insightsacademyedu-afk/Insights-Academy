@@ -37,7 +37,7 @@ export async function requireAuth(req, res, next) {
 
     // Guardians are denied by default on every existing academy API, including
     // teacher-scoped endpoints. Their dedicated read-only API checks child ownership.
-    if (user.role === "guardian" && !["/api/auth", "/api/guardian-portal"].includes(req.baseUrl)) {
+    if (user.role === "guardian" && !["/api/auth", "/api/guardian-portal", "/api/notifications"].includes(req.baseUrl)) {
       return res.status(403).json({ message: "Guardian accounts can only access their own portal" });
     }
 

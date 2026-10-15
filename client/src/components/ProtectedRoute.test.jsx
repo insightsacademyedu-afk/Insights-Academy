@@ -29,6 +29,11 @@ function renderAt(path, { adminOnly = false } = {}) {
 }
 
 describe("ProtectedRoute", () => {
+  it.each(["admin", "guardian", "staff"])("allows %s to open portal notifications", role => {
+    mockUseAuth.mockReturnValue({ user: { role }, status: "authenticated" });
+    renderAt("/notifications");
+    expect(screen.getByText("Secret content")).toBeInTheDocument();
+  });
   it.each(["/students", "/tests", "/fees", "/reports"])("allows a sub-admin to open %s", path => {
     mockUseAuth.mockReturnValue({ user: { role: "subadmin" }, status: "authenticated" });
     renderAt(path, { adminOnly: true });

@@ -2,17 +2,14 @@ import { config } from "./config/env.js";
 import { connectDB } from "./config/db.js";
 import app from "./app.js";
 import mongoose from "mongoose";
-import { startNotificationDelivery } from "./services/notificationDelivery.js";
 
 async function start() {
   await connectDB();
-  const stopNotificationDelivery = startNotificationDelivery();
 
   const server = app.listen(config.port, config.host, () => {
     console.log(`[server] listening on ${config.host}:${config.port} (${config.nodeEnv})`);
   });
   for (const signal of ["SIGINT", "SIGTERM"]) process.once(signal, () => {
-    stopNotificationDelivery();
     const timer = setTimeout(() => process.exit(1), 10000);
     timer.unref();
     server.close(async () => { await mongoose.disconnect(); process.exit(0); });

@@ -72,7 +72,7 @@ export function getNavSections(role) {
 }
 
 export function canAccessNav(item, role) {
-  if (item.to === "/notifications") return role === "admin" || role === "guardian";
+  if (item.to === "/notifications") return ["admin", "guardian", "staff"].includes(role);
   if (role === "subadmin") return SUBADMIN_PATHS.includes(item.to);
   if (role === "guardian") return item.to === "/" || item.to === "/account";
   return !item.adminOnly || role === "admin";

@@ -50,15 +50,6 @@ export async function sendPasswordResetCode({ recipient, code }) {
     text: `Your password reset code is ${code}. It expires in 10 minutes. If you did not request this, ignore this email.` });
 }
 
-export function emailIsConfigured() {
-  return Boolean(config.resend.apiKey ? config.resend.from : config.smtp.host && config.smtp.user && config.smtp.pass);
-}
-
-export async function sendNotificationEmail({ recipient, title, message }) {
-  return sendEmail({ recipient, subject: `Academy notification: ${title.replace(/[\r\n]/g, " ")}`,
-    text: `${message}\n\nView your academy notifications: ${config.clientUrl}/notifications` });
-}
-
 async function sendEmail({ recipient, subject, text }) {
   if (config.resend.apiKey) return sendWithResend({ recipient, subject, text });
 

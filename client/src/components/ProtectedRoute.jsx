@@ -22,7 +22,7 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
     return <Navigate to="/" replace />;
   }
 
-  if (location.pathname === "/notifications" && !["admin", "guardian"].includes(user.role)) return <Navigate to="/" replace />;
+  if (location.pathname === "/notifications" && !["admin", "guardian", "staff"].includes(user.role)) return <Navigate to="/" replace />;
 
   if (user.role === "guardian" && !["/", "/account", "/notifications"].includes(location.pathname)) {
     return <Navigate to="/" replace />;
