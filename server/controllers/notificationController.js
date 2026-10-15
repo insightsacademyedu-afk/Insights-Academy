@@ -3,6 +3,7 @@ import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 import Student from "../models/Student.js";
 import { emailIsConfigured } from "../services/email.js";
+import { deliverNotificationEmails } from "../services/notificationDelivery.js";
 import { buildListQuery, paginatedResponse } from "../utils/listQuery.js";
 
 export async function listRecipients(req, res, next) {
@@ -14,7 +15,7 @@ export async function listRecipients(req, res, next) {
     const Model = students ? Student : User;
     Object.assign(filter, students ? { archivedAt: null } : { role: "guardian", status: "active" });
     const [items, total] = await Promise.all([
-      Model.find(filter).select(students ? "fullName admissionNumber" : "displayName username phone").sort(students ? { fullName: 1, _id: 1 } : { displayName: 1, _id: 1 }).skip(skip).limit(limit).lean(),
+      Model.find(filter).select(students ? "fullName admissionNumber" : "displayName username phone email").sort(students ? { fullName: 1, _id: 1 } : { displayName: 1, _id: 1 }).skip(skip).limit(limit).lean(),
       Model.countDocuments(filter),
     ]);
     if (students) {
@@ -59,7 +60,18 @@ export async function sendNotification(req, res, next) {
       emailDeliveries: emailDeliveries.map(item => ({ ...item, status: emailUnavailable ? "failed" : "pending" })),
       emailSkipped: recipients.length - emailDeliveries.length, emailUnavailable,
     });
-    res.status(201).json({ _id: notification._id, recipientCount: recipientIds.length, emailQueued: emailUnavailable ? 0 : emailDeliveries.length,
+    // Attempt the first email while this request is active. Free hosting may
+    // stop the background worker when idle; saving the inbox must still succeed.
+    if (!emailUnavailable && emailDeliveries.length) {
+      try { await deliverNotificationEmails(1, notification._id); }
+      catch { console.error("[notifications] Immediate email processing failed; notification is saved and remaining emails are queued."); }
+    }
+    const saved = await Notification.findById(notification._id).select("+emailDeliveries").lean();
+    const deliveries = saved.emailDeliveries || [];
+    res.status(201).json({ _id: notification._id, recipientCount: recipientIds.length,
+      emailQueued: deliveries.filter(item => ["pending", "sending"].includes(item.status)).length,
+      emailSent: deliveries.filter(item => item.status === "sent").length,
+      emailFailed: deliveries.filter(item => item.status === "failed").length,
       emailSkipped: notification.emailSkipped, emailUnavailable });
   } catch (error) { next(error); }
 }
@@ -69,10 +81,11 @@ export async function listNotifications(req, res, next) {
     const guardian = req.user.role === "guardian";
     const filter = guardian ? { recipientIds: req.user._id } : {};
     const { page, limit, skip } = buildListQuery(req.query);
-    const [rows, total, unreadCount] = await Promise.all([
+    const [rows, total, unreadCount, hasQueuedEmails] = await Promise.all([
       Notification.find(filter).select(guardian ? "title message createdAt +readBy" : "title message createdAt audience recipientCount emailSkipped emailUnavailable +emailDeliveries").sort({ createdAt: -1, _id: -1 }).skip(skip).limit(limit).lean(),
       Notification.countDocuments(filter),
       guardian ? Notification.countDocuments({ ...filter, readBy: { $ne: req.user._id } }) : Promise.resolve(0),
+      guardian ? Promise.resolve(false) : Notification.exists({ "emailDeliveries.status": { $in: ["pending", "sending"] } }).then(Boolean),
     ]);
     const items = rows.map(({ readBy, emailDeliveries, ...row }) => guardian ? { ...row, read: (readBy || []).some(id => String(id) === String(req.user._id)) } : {
       ...row, email: {
@@ -80,9 +93,18 @@ export async function listNotifications(req, res, next) {
         failed: (emailDeliveries || []).filter(item => item.status === "failed").length,
         pending: (emailDeliveries || []).filter(item => ["pending", "sending"].includes(item.status)).length,
         skipped: row.emailSkipped,
+        failures: [...new Set((emailDeliveries || []).filter(item => item.status === "failed").map(item => item.failureReason || (row.emailUnavailable ? "Email service was not configured when this notification was sent." : "The failure reason was not recorded by the older server version. Check your email provider logs.")))],
       },
     });
-    res.json({ ...paginatedResponse(items, total, page, limit), unreadCount });
+    res.json({ ...paginatedResponse(items, total, page, limit), unreadCount, ...(!guardian ? { hasQueuedEmails } : {}) });
+  } catch (error) { next(error); }
+}
+
+export async function processNotificationQueue(req, res, next) {
+  try {
+    // Keep batches bounded so email delivery runs within an active HTTP request.
+    await deliverNotificationEmails(3);
+    res.json({ hasQueuedEmails: Boolean(await Notification.exists({ "emailDeliveries.status": { $in: ["pending", "sending"] } })) });
   } catch (error) { next(error); }
 }
 

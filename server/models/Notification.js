@@ -12,6 +12,7 @@ const notificationSchema = new mongoose.Schema({
     recipient: { type: String, required: true },
     status: { type: String, enum: ["pending", "sending", "sent", "failed"], default: "pending" },
     startedAt: Date,
+    failureReason: { type: String, maxlength: 500 },
   }], select: false },
   emailSkipped: { type: Number, default: 0 },
   emailUnavailable: { type: Boolean, default: false },

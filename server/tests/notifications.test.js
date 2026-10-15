@@ -39,11 +39,13 @@ test("student and guardian selections deduplicate, inboxes stay private, and rea
   const { admin, parent, other, student } = await setup();
   const result = await send(admin, { guardianIds: [String(parent.user._id)], studentIds: [String(student._id)] });
   expect(result.status).toBe(201);
-  expect(result.body).toMatchObject({ recipientCount: 1, emailQueued: 1 });
+  expect(result.body).toMatchObject({ recipientCount: 1, emailQueued: 0, emailSent: 1 });
+  expect(global.fetch).toHaveBeenCalledTimes(1);
   const inbox = await parent.agent.get("/api/guardian-portal/notifications");
   expect(inbox.body.unreadCount).toBe(1);
   expect(inbox.body.items[0]).toMatchObject({ title: "Academy notice", read: false });
   for (const key of ["recipientIds", "readBy", "emailDeliveries", "sentBy"]) expect(inbox.body.items[0][key]).toBeUndefined();
+  expect(inbox.body.items[0].email).toBeUndefined();
   expect((await other.agent.get("/api/guardian-portal/notifications")).body.total).toBe(0);
   expect((await withCsrf(other.agent.patch(`/api/guardian-portal/notifications/${result.body._id}/read`), other.csrfToken)).status).toBe(404);
   for (let i = 0; i < 2; i++) expect((await withCsrf(parent.agent.patch(`/api/guardian-portal/notifications/${result.body._id}/read`), parent.csrfToken)).status).toBe(200);
@@ -65,8 +67,9 @@ test("broadcast snapshots active accounts, skips missing emails, and records pro
   await User.updateOne({ _id: other.user._id }, { $set: { phone: "03001234567" }, $unset: { email: 1 } });
   const inactive = await createParentSession();
   await User.updateOne({ _id: inactive.user._id }, { $set: { status: "inactive" } });
+  global.fetch.mockResolvedValue({ ok: false, status: 429, text: async () => "rate limited" });
   const result = await send(admin, { audience: "all" });
-  expect(result.body).toMatchObject({ recipientCount: 2, emailQueued: 1, emailSkipped: 1 });
+  expect(result.body).toMatchObject({ recipientCount: 2, emailQueued: 0, emailSkipped: 1, emailFailed: 1 });
   const later = await createParentSession();
   expect((await later.agent.get("/api/guardian-portal/notifications")).body.total).toBe(0);
   expect((await parent.agent.get("/api/guardian-portal/notifications")).body.total).toBe(1);
@@ -74,6 +77,7 @@ test("broadcast snapshots active accounts, skips missing emails, and records pro
   global.fetch.mockResolvedValue({ ok: false, status: 429, text: async () => "rate limited" });
   await deliverNotificationEmails();
   expect((await admin.agent.get("/api/notifications")).body.items[0].email).toMatchObject({ failed: 1, skipped: 1 });
+  expect((await admin.agent.get("/api/notifications")).body.items[0].email.failures[0]).toMatch(/rate or sending quota limit/);
 });
 
 test("invalid or unavailable selections fail without creating messages; only admins send", async () => {
@@ -116,4 +120,35 @@ test("multiple workers claim distinct queued recipients without resending comple
   await deliverNotificationEmails(1);
   expect(global.fetch).toHaveBeenCalledTimes(2);
   expect((await admin.agent.get("/api/notifications")).body.items[0].email).toMatchObject({ sent: 2, pending: 0 });
+});
+
+test("Resend test-sender restrictions produce actionable private history without leaking raw responses", async () => {
+  const { admin, parent } = await setup();
+  global.fetch.mockResolvedValue({ ok: false, status: 403, text: async () => JSON.stringify({ message: "You can only send testing emails to your own email address (private@example.com). secret-value" }) });
+  const result = await send(admin, { guardianIds: [String(parent.user._id)] });
+  expect(result.body).toMatchObject({ emailQueued: 0, emailFailed: 1 });
+  await deliverNotificationEmails(1);
+  const history = await admin.agent.get("/api/notifications");
+  expect(history.body.items[0].email).toMatchObject({ failed: 1, pending: 0 });
+  expect(history.body.items[0].email.failures[0]).toMatch(/Verify your academy domain/);
+  expect(JSON.stringify(history.body)).not.toContain("private@example.com");
+  expect(JSON.stringify(history.body)).not.toContain("secret-value");
+  const inbox = await parent.agent.get("/api/guardian-portal/notifications");
+  expect(inbox.body.items[0]._id).toBe(result.body._id);
+  expect(inbox.body.items[0].email).toBeUndefined();
+  expect(inbox.body.items[0].failureReason).toBeUndefined();
+});
+
+test("admin requests drain an old queue without the background worker; guardians cannot process it", async () => {
+  const { admin, parent } = await setup();
+  await Notification.create({ title: "Previously queued", message: "A saved broadcast", audience: "all", sentBy: admin.user._id,
+    recipientIds: [parent.user._id], recipientCount: 1, emailDeliveries: [{ recipient: parent.user.email }] });
+  expect((await admin.agent.get("/api/notifications")).body.hasQueuedEmails).toBe(true);
+  expect((await withCsrf(parent.agent.post("/api/notifications/process-queue"), parent.csrfToken)).status).toBe(403);
+  expect(global.fetch).not.toHaveBeenCalled();
+  const result = await withCsrf(admin.agent.post("/api/notifications/process-queue"), admin.csrfToken);
+  expect(result.status).toBe(200);
+  expect(result.body.hasQueuedEmails).toBe(false);
+  expect(global.fetch).toHaveBeenCalledTimes(1);
+  expect((await admin.agent.get("/api/notifications")).body.items[0].email.sent).toBe(1);
 });

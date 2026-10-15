@@ -26,8 +26,26 @@ export default function Notifications() {
   const [revision, setRevision] = useState(0);
   const [readError, setReadError] = useState("");
   const [reading, setReading] = useState("");
+  const [queueError, setQueueError] = useState("");
+  const [processing, setProcessing] = useState(false);
   const fetchHistory = useCallback(() => notificationsApi.list(guardian, page), [guardian, page]);
   const { data, loading, error } = useNotificationFetch(fetchHistory, revision);
+  useEffect(() => {
+    if (guardian || !data?.hasQueuedEmails) return;
+    let active = true;
+    const timer = setTimeout(() => {
+      notificationsApi.processQueue().then(() => {
+        if (active) { setQueueError(""); setRevision(value => value + 1); }
+      }).catch(err => { if (active) setQueueError(err.message); });
+    }, 10000);
+    return () => { active = false; clearTimeout(timer); };
+  }, [guardian, data]);
+  async function processQueue() {
+    setProcessing(true); setQueueError("");
+    try { await notificationsApi.processQueue(); setRevision(value => value + 1); }
+    catch (err) { setQueueError(err.message); }
+    finally { setProcessing(false); }
+  }
   async function markRead(id) {
     setReadError(""); setReading(id);
     try { await notificationsApi.markRead(id); setRevision(value => value + 1); }
@@ -42,6 +60,11 @@ export default function Notifications() {
       <Button variant="ghost" disabled={loading} onClick={() => setRevision(value => value + 1)}>Refresh</Button>
     </div>
     {(error || readError) && <p role="alert" className="mb-4 text-brick-600">{error?.message || readError}</p>}
+    {queueError && <p role="alert" className="mb-4 text-brick-600">Could not process queued emails: {queueError}</p>}
+    {!guardian && data?.hasQueuedEmails && <div className="mb-4 flex flex-wrap items-center gap-3">
+      <p className="text-sm text-ink-600">Emails are queued. Keep this page open to continue sending on free hosting.</p>
+      <Button variant="ghost" disabled={processing} onClick={processQueue}>{processing ? "Processing..." : "Process queued emails"}</Button>
+    </div>}
     {loading ? <p role="status">Loading notifications...</p> : <div className="space-y-4">
       {!error && !data?.items.length && <Panel><p className="text-sm text-ink-500">{guardian ? "No notifications yet." : "No notifications sent yet."}</p></Panel>}
       {data?.items.map(item => <Panel key={item._id} title={item.title}>
@@ -51,6 +74,8 @@ export default function Notifications() {
         </div>
         <p className="whitespace-pre-wrap text-sm text-ink-800 [overflow-wrap:anywhere]">{item.message}</p>
         {!guardian && item.email && <p className="mt-3 text-xs text-ink-500">Email: {item.email.sent} accepted by provider · {item.email.pending} queued · {item.email.failed} failed · {item.email.skipped} without email.{item.emailUnavailable ? " Email service was not configured when this was sent. Configure Resend or SMTP before sending future emails." : ""}</p>}
+        {!guardian && item.email?.failures?.map(reason => <p key={reason} className="mt-2 text-sm text-brick-600">{reason}</p>)}
+        {!guardian && item.email?.sent > 0 && <p className="mt-2 text-xs text-ink-500">Provider acceptance does not confirm inbox delivery. If the message is missing, check spam and the provider's delivery or bounce log.</p>}
         {guardian && !item.read && <Button className="mt-4" variant="ghost" disabled={!!reading} onClick={() => markRead(item._id)}>{reading === item._id ? "Saving..." : "Mark as read"}</Button>}
       </Panel>)}
     </div>}
@@ -91,7 +116,7 @@ function Composer({ onSent }) {
   }
   return <Panel title="Send notification"><form onSubmit={submit}>
     <fieldset disabled={saving} className="min-w-0">
-      {result && <p role="status" className="mb-4 text-sm text-ink-700">Delivered to {result.recipientCount} portal inbox(es). {result.emailQueued} email(s) queued; {result.emailSkipped} account(s) without email.{result.emailUnavailable ? " Email service is not configured, so emails could not be sent. Configure Resend or SMTP on the server." : " Use Refresh in sent history to check email results."}</p>}
+      {result && <p role="status" className="mb-4 text-sm text-ink-700">Delivered to {result.recipientCount} portal inbox(es). {result.emailSent || 0} email(s) accepted by provider; {result.emailQueued} email(s) queued; {result.emailFailed || 0} failed; {result.emailSkipped} account(s) without email.{result.emailUnavailable ? " Email service is not configured, so emails could not be sent. Configure Resend or SMTP on the server." : " Check sent history for results. Keep this page open while emails remain queued."}</p>}
       {error && <p role="alert" className="mb-4 text-brick-600">{error}</p>}
       <Field label="Send to"><Select value={audience} onChange={event => setAudience(event.target.value)}>
         <option value="selected">Selected guardians / students</option><option value="all">All registered guardians</option>
@@ -106,7 +131,7 @@ function Composer({ onSent }) {
           {!data?.items.length && <p className="text-sm text-ink-500">No matching recipients.</p>}
           {data?.items.map(item => <label key={item._id} className="flex items-start gap-3 rounded p-2 text-sm hover:bg-paper-100">
             <input type="checkbox" className="mt-1" disabled={kind === "students" && !item.guardianCount} checked={selected.some(row => row.key === `${kind}:${item._id}`)} onChange={() => toggle(item)} />
-            <span>{item.fullName || item.displayName || item.username}<span className="block text-xs text-ink-500">{kind === "students" ? `${item.admissionNumber} · ${item.guardianCount} active guardian login(s)` : item.phone}</span></span>
+            <span>{item.fullName || item.displayName || item.username}<span className="block text-xs text-ink-500">{kind === "students" ? `${item.admissionNumber} · ${item.guardianCount} active guardian login(s)` : `${item.phone || ""} · ${item.email || "No email registered; portal only"}`}</span></span>
           </label>)}
         </div>}
         {data && <Pagination page={page} totalPages={data.totalPages} total={data.total} onChange={setPage} />}
