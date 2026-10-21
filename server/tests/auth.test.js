@@ -24,6 +24,42 @@ describe("Phase 1 — Auth & RBAC core", () => {
     expect(res.body.user.failedLoginAttempts).toBeUndefined();
     expect(res.body.user.tokenVersion).toBeUndefined();
     expect(extractCookieValue(res, COOKIE_NAME)).toBeTruthy();
+    const authCookie = res.headers["set-cookie"].find((cookie) => cookie.startsWith(`${COOKIE_NAME}=`));
+    expect(authCookie).not.toMatch(/;\s*max-age=/i);
+  });
+
+  test("a successful login replaces the previous session in the same browser", async () => {
+    await makeUser({ username: "replace-session" });
+    const agent = request.agent(app);
+    const firstLogin = await agent.post("/api/auth/login")
+      .send({ role: "admin", username: "replace-session", password: "CorrectHorse123!" });
+    const oldCookie = extractCookieValue(firstLogin, COOKIE_NAME);
+
+    const secondLogin = await agent.post("/api/auth/login")
+      .send({ role: "admin", username: "replace-session", password: "CorrectHorse123!" });
+
+    expect(secondLogin.status).toBe(200);
+    expect((await agent.get("/api/auth/me")).status).toBe(200);
+    expect((await request(app).get("/api/auth/me").set("Cookie", `${COOKIE_NAME}=${oldCookie}`)).status).toBe(401);
+  });
+
+  test("logging out one device does not sign out another device using the same account", async () => {
+    const user = await makeUser({ username: "multi-device" });
+    const firstDevice = request.agent(app);
+    const secondDevice = request.agent(app);
+    const firstLogin = await firstDevice.post("/api/auth/login")
+      .send({ role: "admin", username: "multi-device", password: "CorrectHorse123!" });
+    await secondDevice.post("/api/auth/login")
+      .send({ role: "admin", username: "multi-device", password: "CorrectHorse123!" });
+    const csrfToken = extractCookieValue(firstLogin, "ams_csrf");
+
+    expect((await firstDevice.get("/api/auth/me")).status).toBe(200);
+    expect((await secondDevice.get("/api/auth/me")).status).toBe(200);
+    expect((await firstDevice.post("/api/auth/logout").set("x-csrf-token", csrfToken)).status).toBe(200);
+
+    expect((await firstDevice.get("/api/auth/me")).status).toBe(401);
+    expect((await secondDevice.get("/api/auth/me")).status).toBe(200);
+    expect((await User.findById(user._id)).tokenVersion).toBe(0);
   });
 
   test("login with wrong password fails with a generic message", async () => {

@@ -2,9 +2,10 @@ import { config } from "../config/env.js";
 import User from "../models/User.js";
 import Staff from "../models/Staff.js";
 import Student from "../models/Student.js";
+import AuthSession from "../models/AuthSession.js";
 import { phoneLoginPattern, normalizeLoginPhone } from "../utils/loginIdentity.js";
-import { signToken, getCookieOptions } from "../utils/token.js";
-import { createHash, randomInt } from "node:crypto";
+import { signToken, getCookieOptions, verifyToken } from "../utils/token.js";
+import { createHash, randomInt, randomUUID } from "node:crypto";
 import { sendPasswordResetCode } from "../services/email.js";
 
 const GENERIC_LOGIN_ERROR = "Invalid login details or password";
@@ -13,6 +14,37 @@ const MAX_RESET_ATTEMPTS = 5;
 
 function hashResetCode(code) {
   return createHash("sha256").update(code).digest("hex");
+}
+
+async function createAuthSession(user) {
+  const sessionId = randomUUID();
+  const token = signToken(user, sessionId);
+  const payload = verifyToken(token);
+  await AuthSession.create({
+    sessionId,
+    user: user._id,
+    tokenVersion: user.tokenVersion,
+    expiresAt: new Date(payload.exp * 1000),
+  });
+  return token;
+}
+
+async function revokePresentedSession(req) {
+  const token = req.cookies?.[config.cookieName];
+  if (!token) return;
+
+  let payload;
+  try {
+    payload = verifyToken(token);
+  } catch {
+    return;
+  }
+  if (typeof payload.sid === "string") {
+    await AuthSession.updateOne(
+      { sessionId: payload.sid, revokedAt: null },
+      { $set: { revokedAt: new Date() } }
+    );
+  }
 }
 
 export async function login(req, res, next) {
@@ -102,7 +134,8 @@ export async function login(req, res, next) {
     }, { $set: { failedLoginAttempts: 0, lockUntil: null, lastLogin: new Date(), ...enteredPhoneUpgrade } }, { new: true });
     if (!current) return res.status(401).json({ message: GENERIC_LOGIN_ERROR });
 
-    const token = signToken(current);
+    const token = await createAuthSession(current);
+    await revokePresentedSession(req);
     res.cookie(config.cookieName, token, getCookieOptions());
 
     return res.json({ user: current.toJSON() });
@@ -178,9 +211,11 @@ export async function resetPassword(req, res, next) {
 
 export async function logout(req, res, next) {
   try {
-    await User.updateOne({ _id: req.user._id }, { $inc: { tokenVersion: 1 } });
+    await AuthSession.updateOne(
+      { _id: req.authSession._id, user: req.user._id, revokedAt: null },
+      { $set: { revokedAt: new Date() } }
+    );
     const cookieOptions = getCookieOptions();
-    delete cookieOptions.maxAge;
     res.clearCookie(config.cookieName, cookieOptions);
     return res.json({ message: "Logged out" });
   } catch (error) { next(error); }
@@ -208,7 +243,7 @@ export async function changePassword(req, res, next) {
       { $set: { passwordHash, mustChangePassword: false, failedLoginAttempts: 0, lockUntil: null,
         passwordResetTokenHash: null, passwordResetExpiresAt: null, passwordResetAttempts: 0 }, $inc: { tokenVersion: 1 } }, { new: true });
     if (!updated) return res.status(409).json({ message: 'Your account changed. Sign in again before changing your password.' });
-    res.cookie(config.cookieName, signToken(updated), getCookieOptions());
+    res.cookie(config.cookieName, await createAuthSession(updated), getCookieOptions());
     return res.json({ message: 'Password changed. Other sessions have been signed out.' });
   } catch (error) { next(error); }
 }

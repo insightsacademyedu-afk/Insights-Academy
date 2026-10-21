@@ -3,7 +3,9 @@ import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import app from "../app.js";
 import User from "../models/User.js";
+import AuthSession from "../models/AuthSession.js";
 import { createAdminSession, withCsrf } from "./helpers/authHelpers.js";
+import { captureDatabase } from "../services/localBackup.js";
 import { decodeBackup, encodeBackup, MAX_EXPANDED_BACKUP_BYTES, FORMAT, VERSION } from "../services/localBackup.js";
 
 async function prepareReset(user, code = "123456") {
@@ -45,6 +47,7 @@ test("changing a password cancels an outstanding reset code", async () => {
     currentPassword: "Password123!", newPassword: "ChangedPassword123!", confirmPassword: "ChangedPassword123!",
   }), csrfToken);
   expect(response.status).toBe(200);
+  expect((await agent.get("/api/auth/me")).status).toBe(200);
   expect((await request(app).post("/api/auth/reset-password").send(resetBody(user.email))).status).toBe(400);
 });
 
@@ -60,6 +63,19 @@ test("logout revokes copied session cookies on the server", async () => {
   const cookie = loginRes.headers["set-cookie"].map(value => value.split(";")[0]).join("; ");
   expect((await withCsrf(agent.post("/api/auth/logout"), csrfToken)).status).toBe(200);
   expect((await request(app).get("/api/auth/me").set("Cookie", cookie)).status).toBe(401);
+});
+
+test("database backups do not include active authentication sessions", async () => {
+  const { user } = await createAdminSession(app);
+  await AuthSession.create({
+    sessionId: "backup-exclusion-test",
+    user: user._id,
+    tokenVersion: user.tokenVersion,
+    expiresAt: new Date(Date.now() + 60_000),
+  });
+
+  const backup = await captureDatabase();
+  expect(backup.collections).not.toHaveProperty("authsessions");
 });
 
 test("reset secrets are never serialized, even when explicitly selected", async () => {

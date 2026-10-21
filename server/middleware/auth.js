@@ -2,6 +2,7 @@ import { config } from "../config/env.js";
 import { verifyToken } from "../utils/token.js";
 import Staff from "../models/Staff.js";
 import User from "../models/User.js";
+import AuthSession from "../models/AuthSession.js";
 import { canAccessAsSubAdmin } from "../utils/subAdminAccess.js";
 
 // Verifies the JWT cookie, then re-checks the user record on every request
@@ -34,6 +35,19 @@ export async function requireAuth(req, res, next) {
     if (user.tokenVersion !== payload.tokenVersion) {
       return res.status(401).json({ message: "Session has been invalidated, please log in again" });
     }
+    if (typeof payload.sid !== "string" || !payload.sid) {
+      return res.status(401).json({ message: "Invalid or expired session" });
+    }
+    const authSession = await AuthSession.findOne({
+      sessionId: payload.sid,
+      user: user._id,
+      tokenVersion: payload.tokenVersion,
+      expiresAt: { $gt: new Date() },
+      revokedAt: null,
+    });
+    if (!authSession) {
+      return res.status(401).json({ message: "Session has been invalidated, please log in again" });
+    }
 
     // Guardians are denied by default on every existing academy API, including
     // teacher-scoped endpoints. Their dedicated read-only API checks child ownership.
@@ -46,6 +60,7 @@ export async function requireAuth(req, res, next) {
     }
 
     req.user = user; // full mongoose doc, downstream middleware/controllers can use it
+    req.authSession = authSession;
     next();
   } catch (err) {
     next(err);

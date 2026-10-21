@@ -24,6 +24,10 @@ See [SECURITY-REVIEW.md](SECURITY-REVIEW.md) for the security review, deployment
 
 For a live deployment, use a Node.js host that supports Node.js 22.12 or newer and a hosted MongoDB provider. Build the client with `npm.cmd --prefix client run build`, then start the server with `npm.cmd --prefix server start`. Production reads the hosting platform's `PORT` and listens on `0.0.0.0` by default.
 
+Authentication uses an `HttpOnly`, secure-in-production browser-session cookie and a server-tracked session with a seven-day maximum lifetime by default (`JWT_EXPIRES_IN` can shorten or extend that limit). Logging in again in the same browser replaces and revokes the session in its existing cookie; other browsers and devices remain signed in. Logging out revokes only that browser's session. Password changes, account deactivation and other forced invalidations continue to sign out all sessions. Browser cookies are shared across tabs, so signing in or out in one tab affects the other tabs in that same browser; separate devices have independent sessions. Browsers configured to restore their previous session may restore session cookies, so closing the browser is not a guaranteed immediate server-side logout.
+
+After deploying server-tracked sessions, users with an older login cookie must sign in once again. For a shorter maximum session lifetime, set `JWT_EXPIRES_IN=1d` in the hosting environment; the default is `7d`.
+
 Set these private production environment variables on the host:
 
 ```dotenv

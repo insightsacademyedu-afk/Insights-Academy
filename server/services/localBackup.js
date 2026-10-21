@@ -28,7 +28,8 @@ export function backupFileName(databaseName, createdAt = new Date().toISOString(
 
 async function visibleCollections(db) {
   const items = await db.listCollections({}, { nameOnly: true }).toArray();
-  return items.map(({ name }) => name).filter((name) => !name.startsWith("system."));
+  return items.map(({ name }) => name)
+    .filter((name) => !name.startsWith("system.") && name !== "authsessions");
 }
 
 export async function captureDatabase() {
@@ -83,12 +84,13 @@ export async function saveBackup(buffer, databaseName, createdAt) {
 
 async function replaceDatabase(payload) {
   const db = mongoose.connection.db;
-  const currentNames = await visibleCollections(db);
+  const currentNames = (await db.listCollections({}, { nameOnly: true }).toArray())
+    .map(({ name }) => name).filter((name) => !name.startsWith("system."));
   const allNames = new Set([...currentNames, ...Object.keys(payload.collections)]);
   for (const name of allNames) {
     const collection = db.collection(name);
     await collection.deleteMany({});
-    const documents = payload.collections[name] || [];
+    const documents = name === "authsessions" ? [] : payload.collections[name] || [];
     if (documents.length) await collection.insertMany(documents, { ordered: true });
   }
 }
