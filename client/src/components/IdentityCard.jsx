@@ -1,7 +1,9 @@
 import { cardDate, safePhotoUrl } from "../lib/attendance";
+import StudentCardFace from "./StudentCardFace";
 
 // Shared print-like theme for both types of academy card.
 export default function IdentityCard({ person, card, settings, qr, employee = false, employeeId }) {
+  if (!employee) return <StudentCardFace person={person} card={card} settings={settings} qr={qr} />;
   const photo = safePhotoUrl(person.photoUrl);
   return <div className="mx-auto w-full max-w-[340px] overflow-hidden rounded-xl border border-[#dbd6c8] bg-white text-center text-[#1e2a44] shadow-sm" aria-label={employee ? "Teacher employee identity card" : "Student identity card"}>
     <div className="border-b-4 border-[#b07f22] bg-[#1e2a44] px-5 py-4 text-white"><div className="font-display text-xl">{settings.academyName}</div><div className="mt-1 text-xs tracking-widest">{employee ? "EMPLOYEE" : "STUDENT"} IDENTITY CARD</div></div>

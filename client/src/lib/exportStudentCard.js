@@ -1,8 +1,9 @@
 import { cardDate, safePhotoUrl } from "./attendance";
+import { drawStudentCard } from "./drawStudentCard";
 
 const loadImage = src => new Promise((resolve, reject) => {
   const image = new Image(); image.crossOrigin = "anonymous";
-  image.onload = () => resolve(image); image.onerror = () => reject(new Error("Could not load the card photo. Upload the photo again, then retry.")); image.src = src;
+  image.onload = () => resolve(image); image.onerror = () => reject(new Error("Could not load a card image. Refresh the page or upload the photo again, then retry.")); image.src = src;
 });
 
 export async function exportStudentCard({ student: studentProfile, teacher, employeeId, card, settings, qr }, print = false) {
@@ -15,6 +16,9 @@ export async function exportStudentCard({ student: studentProfile, teacher, empl
   try {
     const canvas = document.createElement("canvas"); canvas.width = 638; canvas.height = 1011;
     const ctx = canvas.getContext("2d");
+    if (!employee) {
+      await drawStudentCard(ctx, { student, card, settings, qr }, loadImage);
+    } else {
     ctx.textAlign = "center";
     ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, 638, 1011);
     ctx.fillStyle = "#1e2a44"; ctx.fillRect(0, 0, 638, 140);
@@ -51,6 +55,7 @@ export async function exportStudentCard({ student: studentProfile, teacher, empl
     ctx.fillStyle="#55658a";ctx.font="20px Arial";ctx.fillText(`Issued: ${cardDate(card.issuedAt)}`,319,920,558);
     ctx.fillText(`Valid through: ${cardDate(new Date(new Date(card.expiresAt).getTime()-1))}`,319,951,558);
     ctx.font="17px Arial";ctx.fillText(employee ? `Employee card - Version ${card.version}` : `Card version ${card.version} - Valid only for the printed class`,319,986,558);
+    }
     const url = canvas.toDataURL("image/png");
     if (print) {
       popup.document.title=cardTitle;

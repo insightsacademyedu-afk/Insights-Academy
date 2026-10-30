@@ -24,6 +24,7 @@ it("shows current class, guardian phone, QR and the inclusive last valid date", 
   expect(screen.getByText("03001234567")).toBeInTheDocument();
   expect(screen.getByText("Valid through 29 Oct 2027")).toBeInTheDocument();
   expect(await screen.findByAltText("Student attendance QR code")).toBeInTheDocument();
+  expect(screen.getByAltText("Insights Academy logo")).toHaveAttribute("src", "/branding/insights-mark.svg");
 });
 
 it("replaces a lost card after confirmation and renders the new class and QR", async () => {

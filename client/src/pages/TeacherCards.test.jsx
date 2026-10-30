@@ -39,10 +39,10 @@ it("edits name and designation and retains the employee identity", async () => {
   expect(screen.getByText("Employee ID: EMP-0042")).toBeInTheDocument();
 });
 
-it("applies the same approved navy and gold header to student cards", async () => {
+it("uses the approved logo and orange-blue theme for student cards", async () => {
   studentCardsApi.get.mockResolvedValue({ student: { fullName: "Ahmed Ali", admissionNumber: "0042", guardian: { primaryPhone: "03001234567" } }, card: { ...data.card, className: "Class 9", sectionName: "A" }, history: [] });
   render(<MemoryRouter initialEntries={["/student-cards?student=42"]}><StudentCards /></MemoryRouter>);
-  const heading = await screen.findByText("STUDENT IDENTITY CARD");
-  expect(heading.parentElement).toHaveClass("bg-[#1e2a44]", "border-[#b07f22]");
+  await screen.findByText("STUDENT IDENTITY CARD");
+  expect(screen.getByAltText("Insights Academy logo")).toHaveAttribute("src", "/branding/insights-mark.svg");
   expect(screen.getByText("03001234567")).toBeInTheDocument();
 });
