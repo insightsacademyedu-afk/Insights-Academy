@@ -5,6 +5,7 @@ export const attendanceApi = {
   scan: token => api.post("/attendance/scan", { token }).then(res => res.data),
   roster: params => api.get("/attendance/roster", { params }).then(res => res.data),
   mark: body => api.post("/attendance/manual", body).then(res => res.data),
+  markStudent: body => api.post("/attendance/manual/student", body).then(res => res.data),
 };
 export const teacherAttendanceApi = {
   scan: token => api.post("/teacher-attendance/scan", { token }).then(res => res.data),

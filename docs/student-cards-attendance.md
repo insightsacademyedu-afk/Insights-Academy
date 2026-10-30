@@ -12,6 +12,7 @@
 - Attendance views refresh every 30 seconds while visible, with a manual Refresh button. Check-in times and dates use Asia/Karachi.
 - The Absent list includes each student's class, section and guardian primary phone for follow-up calls. Valid phone numbers are clickable call links; missing numbers show Not available. Staff can only see contact numbers for students in their attendance scope. Guardian contact lookup is not added to the parent attendance API.
 - Admins and sub-admins can use **Attendance → Mark class attendance**, choose a class and optional section, select present students, and save today's attendance together. Select-all applies to unmarked students on the current page. A valid QR card is not needed for manual marking. Existing check-ins keep their original time and method. Other students remain in the computed Absent list. Staff and parents cannot manually mark attendance.
+- In **Attendance records**, admins and sub-admins can search/select one student and click **Mark present today**, including when no prior attendance records exist. Today's Absent list also provides a mark-present action on each student row. The server uses the student's current placement and honors any selected class; historical filters never backdate a manual mark. Repeated marks show Already marked today and keep the original check-in.
 
 ## Card and attendance rules
 
@@ -44,6 +45,7 @@ For a controlled deployment, the existing `db:prepare -- --confirm-db EXACT_DATA
 - `POST /api/attendance/scan` with `{ "token": "AMS1_..." }`
 - `GET /api/attendance/roster?class=CLASS_ID&section=OPTIONAL_SECTION_ID&page=1&limit=25`
 - `POST /api/attendance/manual` with `{ "class": "CLASS_ID", "section": "OPTIONAL_SECTION_ID", "students": ["STUDENT_ID"], "day": "TODAYS_PAKISTAN_DATE" }` (up to 100 students, atomic batch)
+- `POST /api/attendance/manual/student` with `{ "student": "STUDENT_ID", "class": "OPTIONAL_CLASS_FILTER_ID", "day": "TODAYS_PAKISTAN_DATE" }`
 - `GET /api/attendance` with optional `student`, `class`, `section`, `academicSession`, `day`, `from`, `to`, `page`, `limit`
 - `GET /api/guardian-portal/children/:studentId/attendance`
 

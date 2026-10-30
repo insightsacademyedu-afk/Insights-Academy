@@ -46,6 +46,8 @@ export default function Attendance() {
   const [klass, setKlass] = useState("");
   const [classes, setClasses] = useState([]);
   const [classError, setClassError] = useState("");
+  const [markBusy, setMarkBusy] = useState(false);
+  const [markFeedback, setMarkFeedback] = useState(null);
   const [page, setPage] = useState(1);
   const [reload, setReload] = useState(0);
   const [records, setRecords] = useState({ items: [], total: 0, totalPages: 1 });
@@ -78,6 +80,19 @@ export default function Attendance() {
       .catch(err => { if (active) setRecords({ items: [], total: 0, totalPages: 1, queryKey, error: err.message }); });
     return () => { active = false; };
   }, [page, from, to, status, absentDay, student, klass, reload, queryKey]);
+  async function markStudent(target = student, classId = klass) {
+    if (!target?._id || markBusy) return;
+    setMarkBusy(true); setMarkFeedback(null);
+    try {
+      const result = await attendanceApi.markStudent({ student: target._id, ...(classId ? { class: classId } : {}), day: todayInKarachi() });
+      setMarkFeedback({ success: true, message: `${target.fullName}: ${result.message}` });
+      setReload(value => value + 1);
+    } catch (err) { setMarkFeedback({ success: false, message: err.message }); }
+    finally { setMarkBusy(false); }
+  }
+  const tableColumns = status === "absent" ? [...absentColumns, ...(manager && absentDay === todayInKarachi() ? [{
+    key: "mark", header: "Attendance", render: row => <Button variant="ghost" disabled={markBusy} aria-label={`Mark ${row.student.fullName} present today`} onClick={() => markStudent(row.student, row.class)}>Mark present today</Button>,
+  }] : [])] : columns;
   return <AppLayout title="Attendance">
     <p className="mb-5 text-sm text-ink-600">One check-in per student per day, using Pakistan time. {manager ? "View academy attendance and student history." : "View attendance for your assigned students. Only admin and subadmin can mark attendance."}</p>
     <div className="mb-5 flex flex-wrap gap-2"><Button variant={tab === "records" ? "primary" : "ghost"} aria-pressed={tab === "records"} onClick={() => setTab("records")}>Attendance records</Button>{manager && <><Button variant={tab === "scan" ? "primary" : "ghost"} aria-pressed={tab === "scan"} onClick={() => setTab("scan")}>Scan student card</Button><Button variant={tab === "manual" ? "primary" : "ghost"} aria-pressed={tab === "manual"} onClick={() => setTab("manual")}>Mark class attendance</Button></>}</div>
@@ -86,7 +101,8 @@ export default function Attendance() {
     {manager && tab === "manual" && <Panel title="Manual class attendance"><ManualStudentAttendance classes={classes} initialClass={klass} onSaved={() => setReload(value => value + 1)} /></Panel>}
     {tab === "records" && <Panel title="Daily attendance & history" action={<Button variant="ghost" disabled={loading} onClick={() => setReload(value => value + 1)}>Refresh</Button>}>
       <div className="mb-4 flex flex-wrap items-end gap-3">
-        <div className="mb-4"><StudentSelector value={student} onChange={value => { setStudent(value); setPage(1); }} /></div>
+        <fieldset disabled={markBusy} className="mb-4"><legend className="sr-only">Select student</legend><StudentSelector value={student} onChange={value => { setStudent(value); setPage(1); setMarkFeedback(null); }} /></fieldset>
+        {manager && <div className="mb-4"><Button disabled={!student || markBusy} onClick={() => markStudent()}>{markBusy ? "Saving attendance…" : "Mark present today"}</Button></div>}
         <Field label="Attendance status"><Select value={status} onChange={event => { setStatus(event.target.value); setPage(1); if (event.target.value === "absent") setAbsentDay(from && from === to && from <= todayInKarachi() ? from : todayInKarachi()); }}><option value="present">Present</option><option value="absent">Absent</option></Select></Field>
         {status === "absent" ? <Field label="Attendance date"><TextInput required type="date" max={todayInKarachi()} value={absentDay} onChange={event => { setAbsentDay(event.target.value || todayInKarachi()); setPage(1); }} /></Field> : <><Field label="From"><TextInput type="date" value={from} onChange={event => { setFrom(event.target.value); setPage(1); }} /></Field>
         <Field label="To"><TextInput type="date" value={to} onChange={event => { setTo(event.target.value); setPage(1); }} /></Field></>}
@@ -94,8 +110,10 @@ export default function Attendance() {
         {status !== "absent" && <div className="mb-4"><Button variant="ghost" onClick={() => { setFrom(""); setTo(""); setPage(1); }}>All dates</Button></div>}
       </div>
       {error && <p role="alert" className="mb-4 text-sm text-brick-600">{error}</p>}
+      {manager && <p className="mb-3 text-xs text-ink-500">Search and select a student above to mark them present today. Date filters apply to the records shown below.</p>}
+      {markFeedback && <p role={markFeedback.success ? "status" : "alert"} className={`mb-3 text-sm ${markFeedback.success ? "text-moss-600" : "text-brick-600"}`}>{markFeedback.message}</p>}
       {status === "absent" && <p className="mb-4 text-sm text-ink-600">Absent means no check-in on the selected date among active, enrolled students. Today's list updates as students arrive; holidays and leave are not excluded automatically.</p>}
-      <DataTable columns={status === "absent" ? absentColumns : columns} rows={loading ? [] : records.items} loading={loading} emptyMessage={status === "absent" ? "No absent students found for this date and these filters." : "No check-ins found for these filters."} />
+      <DataTable columns={tableColumns} rows={loading ? [] : records.items} loading={loading} emptyMessage={status === "absent" ? "No absent students found for this date and these filters." : "No check-ins found for these filters."} />
       {!loading && <Pagination page={page} total={records.total} totalPages={records.totalPages} onChange={setPage} />}
       <p className="mt-3 text-xs text-ink-500">Refreshes every 30 seconds while this page is visible. Class at check-in is preserved after transfers.</p>
     </Panel>}

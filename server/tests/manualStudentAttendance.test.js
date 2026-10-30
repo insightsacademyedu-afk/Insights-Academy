@@ -95,3 +95,31 @@ test("manual attendance rejects malformed requests, stale days and staff/parent 
   expect((await post(parent, "/api/attendance/manual", base)).status).toBe(403);
   expect(await Attendance.countDocuments()).toBe(0);
 });
+
+test("searched students can be marked without a class selection and duplicates preserve the first check-in", async () => {
+  const { admin, first, chain } = await setup();
+  const sub = await createAndLoginUser(app, { role: "subadmin" });
+  const saved = await post(sub, "/api/attendance/manual/student", { student: first.student._id, day: academyDay() });
+  expect(saved.status).toBe(200);expect(saved.body).toMatchObject({ marked: 1, message: "Student attendance saved" });
+  const original = await Attendance.findOne({ student: first.student._id });
+  expect(original.className).toBe(chain.klass.name);expect(original.method).toBe("manual");expect(String(original.recordedBy)).toBe(String(sub.user._id));
+  const duplicate = await post(admin, "/api/attendance/manual/student", { student: first.student._id });
+  expect(duplicate.status).toBe(200);expect(duplicate.body).toMatchObject({ marked: 0, alreadyMarked: 1, message: "Already marked today" });
+  const card = (await post(admin, `/api/student-cards/${first.student._id}/issue`, {})).body.card;
+  const qr = await post(admin, "/api/attendance/scan", { token: card.token });
+  expect(qr.status).toBe(200);expect(qr.body.duplicate).toBe(true);
+  const record = await Attendance.findOne({ student: first.student._id });
+  expect(record.checkedInAt.toISOString()).toBe(original.checkedInAt.toISOString());expect(record.method).toBe("manual");
+  expect(await Attendance.countDocuments()).toBe(1);
+});
+
+test("single student marking validates the class filter, current day and role", async () => {
+  const { admin, first } = await setup();
+  const other = await createAcademicChain();
+  expect((await post(admin, "/api/attendance/manual/student", { student: first.student._id, class: other.klass._id })).status).toBe(409);
+  expect((await post(admin, "/api/attendance/manual/student", { student: first.student._id, day: "2020-01-01" })).status).toBe(409);
+  expect((await post(admin, "/api/attendance/manual/student", { student: "bad" })).status).toBe(400);
+  const teacher = await createTeacherSession(app);
+  expect((await post(teacher, "/api/attendance/manual/student", { student: first.student._id })).status).toBe(403);
+  expect(await Attendance.countDocuments()).toBe(0);
+});
