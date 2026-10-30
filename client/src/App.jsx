@@ -17,6 +17,8 @@ const Subjects = lazy(() => import("./pages/Subjects"));
 const Designations = lazy(() => import("./pages/Designations"));
 const Staff = lazy(() => import("./pages/Staff"));
 const Students = lazy(() => import("./pages/Students"));
+const StudentCards = lazy(() => import("./pages/StudentCards"));
+const Attendance = lazy(() => import("./pages/Attendance"));
 const Fees = lazy(() => import("./pages/Fees"));
 const Tests = lazy(() => import("./pages/Tests"));
 const Salaries = lazy(() => import("./pages/Salaries"));
@@ -35,6 +37,8 @@ const LIVE_PAGES = {
   "/designations": Designations,
   "/staff": Staff,
   "/students": Students,
+  "/student-cards": StudentCards,
+  "/attendance": Attendance,
   "/fees": Fees,
   "/tests": Tests,
   "/salaries": Salaries,

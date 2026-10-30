@@ -24,6 +24,7 @@ moneyFields(feeDetailsSchema, ["monthlyTuition","admissionFee","examFee","otherF
 const studentSchema = new Schema(
   {
     admissionNumber: { type: String, required: true, unique: true, trim: true },
+    cardLockVersion: { type: Number, default: 0, select: false },
 
     // Personal information
     fullName: { type: String, required: true, trim: true },
@@ -33,7 +34,13 @@ const studentSchema = new Schema(
     cnicOrBForm: { type: String, trim: true, default: "" },
     address: { type: String, trim: true, default: "" },
     phone: { type: String, trim: true, default: "" },
-    photoUrl: { type: String, trim: true, default: "" },
+    photoUrl: {
+      type: String, trim: true, default: "", maxlength: 350000,
+      validate: {
+        validator: value => !value || /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value) || /^https?:\/\//i.test(value) || /^\/(?!\/)/.test(value),
+        message: "Use an uploaded JPG, PNG or WebP photo, or a valid photo URL",
+      },
+    },
     admissionDate: { type: Date, default: Date.now },
 
     status: {

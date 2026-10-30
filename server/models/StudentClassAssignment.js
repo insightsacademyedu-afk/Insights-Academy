@@ -45,8 +45,10 @@ const studentClassAssignmentSchema = new Schema(
   { timestamps: true }
 );
 
-// A student can only have one assignment per session.
-studentClassAssignmentSchema.index({ student: 1, academicSession: 1 }, { unique: true });
+// Preserve transferred placements while allowing one active placement per session.
+studentClassAssignmentSchema.index({ student: 1, academicSession: 1 }, {
+  unique: true, partialFilterExpression: { status: "active", archivedAt: null }, name: "active_student_session_unique",
+});
 
 // Roll numbers must be unique within a class/section/session.
 studentClassAssignmentSchema.index(

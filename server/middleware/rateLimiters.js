@@ -27,6 +27,22 @@ export const apiRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Morning arrivals must not consume the general 300-request portal budget.
+// The ingress limit protects authentication; the account limit follows auth.
+export const attendanceIngressRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: isTest ? 10000 : 600,
+  standardHeaders: true, legacyHeaders: false,
+  message: { message: "Too many scan requests. Please wait a moment and retry." },
+});
+export const attendanceAccountRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: isTest ? 10000 : 120,
+  keyGenerator: req => String(req.user._id),
+  standardHeaders: true, legacyHeaders: false,
+  message: { message: "Scanning too quickly. Please wait a moment and retry." },
+});
+
 // Phase 10: a tighter limiter for account-credential actions that aren't
 // the login route itself but have the same abuse shape — create-login,
 // reset-password, and revoke-login all mint or destroy access to a real

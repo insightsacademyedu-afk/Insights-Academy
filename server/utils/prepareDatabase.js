@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { readdirSync } from 'node:fs';
 import { sourceDatabase } from '../../backup/common.mjs';
 import { ensureUserEmailIndex } from './userEmailIndex.js';
+import { ensureStudentAssignmentIndex } from './studentAssignmentIndex.js';
 const args=process.argv.slice(2);
 try {
   const expected=args[args.indexOf('--confirm-db')+1];
@@ -18,6 +19,8 @@ try {
   console.log(`[database] ${apply?'APPLY':'PREVIEW'} database=${expected}`);
   console.log('[database] Ensure sparse unique email index for phone-only guardian accounts');
   if(apply) await ensureUserEmailIndex(mongoose.connection.collection('users'));
+  console.log('[database] Replace the legacy placement index with one active placement per student/session (preserves transfer history)');
+  if(apply) await ensureStudentAssignmentIndex(mongoose.connection.collection('studentclassassignments'));
   if(legacy) {
     console.log('[database] Replace legacy salary-expense sparse index with an ObjectId-only partial unique index');
     if(apply) await collection.dropIndex(legacy.name);

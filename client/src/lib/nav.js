@@ -13,6 +13,7 @@ import {
   ClipboardList,
   Receipt,
   FileBarChart,
+  ScanLine,
 } from "lucide-react";
 
 // `phase` documents which frontend build phase wires this module to the
@@ -44,6 +45,8 @@ export const NAV_SECTIONS = [
     items: [
       { to: "/staff", label: "Staff & Teachers", icon: Users, phase: 3, adminOnly: true },
       { to: "/students", label: "Students", icon: GraduationCap, phase: 4, adminOnly: false },
+      { to: "/student-cards", label: "Student cards", icon: IdCard, phase: 4, adminOnly: true },
+      { to: "/attendance", label: "Attendance", icon: ScanLine, phase: 4, adminOnly: false },
     ],
   },
   {
@@ -61,7 +64,7 @@ export const NAV_SECTIONS = [
 ];
 
 export const CURRENT_PHASE = 9;
-export const SUBADMIN_PATHS = ["/", "/account", "/students", "/tests", "/fees", "/reports"];
+export const SUBADMIN_PATHS = ["/", "/account", "/students", "/student-cards", "/attendance", "/tests", "/fees", "/reports"];
 
 export function getNavSections(role) {
   if (!["guardian", "subadmin"].includes(role)) return NAV_SECTIONS;

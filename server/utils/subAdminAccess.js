@@ -7,6 +7,8 @@ export function canAccessAsSubAdmin(req) {
   const read = method === "GET";
   if (baseUrl === "/api/auth") return read && matches(path, "/me") || method === "POST" && matches(path, "/(?:logout|change-password)");
   if (baseUrl === "/api/settings") return read && matches(path, "/");
+  if (baseUrl === "/api/student-cards") return read && matches(path, `/${id}`) || method === "POST" && matches(path, `/${id}/(?:issue|renew|replace|revoke)`);
+  if (baseUrl === "/api/attendance") return read && matches(path, "/") || method === "POST" && matches(path, "/scan");
   if (["/api/academic-sessions", "/api/classes", "/api/sections", "/api/subjects"].includes(baseUrl)) {
     return read && matches(path, `/(?:${id})?`);
   }

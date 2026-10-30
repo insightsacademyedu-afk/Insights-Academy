@@ -9,7 +9,7 @@ import mongoSanitize from "express-mongo-sanitize";
 
 import { config } from "./config/env.js";
 import { issueCsrfCookie, verifyCsrf } from "./middleware/csrf.js";
-import { apiRateLimiter } from "./middleware/rateLimiters.js";
+import { apiRateLimiter, attendanceIngressRateLimiter } from "./middleware/rateLimiters.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
 import authRoutes from "./routes/authRoutes.js";
@@ -35,6 +35,8 @@ import guardianAccountRoutes from "./routes/guardianAccountRoutes.js";
 import guardianPortalRoutes from "./routes/guardianPortalRoutes.js";
 import subAdminRoutes from "./routes/subAdminRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import studentCardRoutes from "./routes/studentCardRoutes.js";
+import attendanceRoutes from "./routes/attendanceRoutes.js";
 
 const app = express();
 
@@ -62,7 +64,10 @@ if (!config.isProd && !config.serveClient) {
   app.use(morgan("dev"));
 }
 
-app.use(apiRateLimiter);
+app.use((req, res, next) => {
+  const limiter = req.method === "POST" && /^\/api\/attendance\/scan\/?$/i.test(req.path) ? attendanceIngressRateLimiter : apiRateLimiter;
+  limiter(req, res, next);
+});
 app.use("/api", (_req, res, next) => {
   res.set("Cache-Control", "no-store");
   next();
@@ -88,6 +93,8 @@ app.use("/api/designations", designationRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/teacher-assignments", teacherAssignmentRoutes);
 app.use("/api/students", studentRoutes);
+app.use("/api/student-cards", studentCardRoutes);
+app.use("/api/attendance", attendanceRoutes);
 app.use("/api/fees", feeRoutes);
 app.use("/api/tests", testRoutes);
 app.use("/api/expense-categories", expenseCategoryRoutes);

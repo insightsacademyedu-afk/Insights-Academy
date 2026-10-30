@@ -10,6 +10,7 @@ import FeeInvoice from "../models/FeeInvoice.js";
 import Sequence from "../models/Sequence.js";
 import { buildListQuery, paginatedResponse } from "../utils/listQuery.js";
 import { getTeacherClassSectionPairs, buildStudentAssignmentFilterFromPairs } from "../utils/teacherScope.js";
+import { lockStudent, currentPlacement, issueCard, cardError } from "../services/studentCards.js";
 
 // Teachers get a reduced view: no fee/financial data, no CNIC — per spec,
 // "Teacher sees only the permitted academic information." Admins get the
@@ -142,7 +143,7 @@ export async function create(req, res, next) {
   let session;
   try {
     session = await mongoose.startSession();
-    const { guardian, enrollment, admissionNumber: _ignoredAdmissionNumber, ...studentFields } = req.body;
+    const { guardian, enrollment, admissionNumber: _ignoredAdmissionNumber, cardLockVersion: _ignoredLock, ...studentFields } = req.body;
 
     if (!guardian) {
       return res.status(400).json({ message: "guardian details are required" });
@@ -177,6 +178,8 @@ export async function create(req, res, next) {
       );
 
       const parentPortal = await provisionParent(guardianDoc, studentDoc._id, session);
+      await currentPlacement(studentDoc._id, session);
+      await issueCard(studentDoc._id, assignmentDoc, req.user._id, session);
       result = { student: studentDoc, guardian: guardianDoc, assignment: assignmentDoc, parentPortal };
     });
 
@@ -201,7 +204,7 @@ export async function create(req, res, next) {
 // there's always an explicit StudentClassAssignment record of the change.
 export async function update(req, res, next) {
   try {
-    const { guardian, enrollment, admissionNumber: _ignoredAdmissionNumber, ...studentFields } = req.body;
+    const { guardian, enrollment, admissionNumber: _ignoredAdmissionNumber, cardLockVersion: _ignoredLock, ...studentFields } = req.body;
 
     let updated;
     await mongoose.connection.transaction(async session => {
@@ -266,6 +269,12 @@ export async function enroll(req, res, next) {
 
     let assignment;
     await mongoose.connection.transaction(async (session) => {
+      await lockStudent(student._id, session);
+      const existing = await StudentClassAssignment.findOne({ student: student._id, status: "active", archivedAt: null }).sort({ createdAt: -1, _id: -1 }).session(session);
+      if (existing && String(existing.class) === String(classId) && String(existing.section) === String(section) && String(existing.academicSession) === String(academicSession)) {
+        throw cardError("Student is already enrolled in this class and section");
+      }
+      await StudentClassAssignment.updateMany({ student: student._id, status: "active", archivedAt: null }, { $set: { status: "transferred_out" } }, { session });
       const rollNumber = await nextRollNumber({ class: classId, section, academicSession }, session);
       const [created] = await StudentClassAssignment.create([{
         student: student._id,
@@ -275,6 +284,8 @@ export async function enroll(req, res, next) {
         rollNumber,
       }], { session });
       assignment = created;
+      await currentPlacement(student._id, session);
+      await issueCard(student._id, created, req.user._id, session, "class_transfer");
     });
 
     res.status(201).json(assignment);

@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
 import { ensureUserEmailIndex } from "../utils/userEmailIndex.js";
+import { ensureStudentAssignmentIndex } from "../utils/studentAssignmentIndex.js";
+import StudentCard from "../models/StudentCard.js";
+import Attendance from "../models/Attendance.js";
 
 export async function connectDB() {
   const uri = process.env.MONGO_URI;
@@ -22,6 +25,9 @@ export async function connectDB() {
     serverSelectionTimeoutMS: toPositiveInt("MONGO_SERVER_SELECTION_TIMEOUT_MS", 5000),
   });
   await ensureUserEmailIndex(mongoose.connection.collection("users"));
+  await ensureStudentAssignmentIndex(mongoose.connection.collection("studentclassassignments"));
+  await StudentCard.createIndexes();
+  await Attendance.createIndexes();
   await mongoose.connection.collection("users").createIndex({ phone: 1 }, {
     unique: true, name: "guardian_phone_unique", partialFilterExpression: { role: "guardian", phone: { $type: "string" } },
   });

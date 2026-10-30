@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Search, Plus, Eye, Pencil, Trash2, ArrowRightLeft } from "lucide-react";
+import { Search, Plus, Eye, Pencil, Trash2, ArrowRightLeft, IdCard } from "lucide-react";
+import { Link } from "react-router-dom";
 import AppLayout from "../components/AppLayout";
 import DataTable from "../components/DataTable";
 import Pagination from "../components/Pagination";
@@ -14,6 +15,7 @@ import { useResourceList } from "../lib/useResourceList";
 import { useToast } from "../context/ToastContext";
 import { useAuth } from "../context/AuthContext";
 import StudentParentLogin from "../components/StudentParentLogin";
+import StudentPhotoInput from "../components/StudentPhotoInput";
 import { formatCurrency, formatDate, toDateInputValue } from "../lib/format";
 
 // Student.status has five values (not the generic active/inactive most
@@ -27,6 +29,7 @@ function emptyStudentForm() {
   return {
     admissionNumber: "",
     fullName: "",
+    photoUrl: "",
     fatherName: "",
     gender: "male",
     dob: "",
@@ -186,6 +189,7 @@ export default function Students() {
           </button>
           {canManageStudents && (
             <>
+              <Link to={`/student-cards?student=${row._id}`} className="p-1.5 text-ink-500 hover:text-ink-900" aria-label="Student card" title="Student card"><IdCard size={14} /></Link>
               <button
                 onClick={() => openEnroll(row)}
                 className="p-1.5 text-ink-500 hover:text-ink-900"
@@ -389,6 +393,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
       setForm({
         admissionNumber: editing.admissionNumber,
         fullName: editing.fullName,
+        photoUrl: editing.photoUrl || "",
         fatherName: editing.fatherName || "",
         gender: editing.gender,
         dob: toDateInputValue(editing.dob),
@@ -485,6 +490,7 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
         )}
 
         <SectionHeading>Student</SectionHeading>
+        <StudentPhotoInput value={form.photoUrl} onChange={photoUrl => setForm(current => ({ ...current, photoUrl }))} />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Full name" required>
             <TextInput required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
@@ -864,7 +870,7 @@ function EnrollModal({ student, sessions, onClose, onSaved }) {
             </Select>
           </Field>
         </div>
-        <p className="mb-4 text-xs text-ink-500">The next roll number for this class will be assigned automatically.</p>
+        <p className="mb-4 text-xs text-ink-500">The next roll number will be assigned automatically. The previous placement and card will become invalid; a new card and QR will be issued for this class.</p>
 
         <div className="flex flex-wrap justify-end gap-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>

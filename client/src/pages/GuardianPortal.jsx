@@ -5,8 +5,16 @@ import DataTable from "../components/DataTable";
 import Pagination from "../components/Pagination";
 import { guardianPortalApi } from "../api/guardians";
 import { formatCurrency, formatDate } from "../lib/format";
+import { attendanceTime } from "../lib/attendance";
+import Button from "../components/Button";
 
 const recordColumns = {
+  attendance: [
+    { key: "day", header: "Date (PKT)" },
+    { key: "status", header: "Status", render: () => "Present" },
+    { key: "checkedInAt", header: "Check-in (PKT)", render: row => attendanceTime(row.checkedInAt) },
+    { key: "className", header: "Class at check-in", render: row => `${row.className} / ${row.sectionName}` },
+  ],
   tests: [
     { key: "test", header: "Test", render: row => <><div>{row.test.title}</div><div className="text-xs text-ink-500">{row.test.subject?.name} · {row.test.academicSession?.name}</div></> },
     { key: "date", header: "Date", render: row => formatDate(row.test.testDate) },
@@ -66,6 +74,7 @@ function ChildReport({ id }) {
   const [overview, setOverview] = useState(null);
   const [overviewError, setOverviewError] = useState("");
   const [kind, setKind] = useState("tests");
+  const [reload, setReload] = useState(0);
   const [page, setPage] = useState(1);
   const [records, setRecords] = useState({ items: [], total: 0, totalPages: 1 });
   const loading = records.kind !== kind || records.page !== page;
@@ -81,7 +90,12 @@ function ChildReport({ id }) {
     guardianPortalApi.records(id, kind, page).then(value => { if (active) setRecords({ ...value, kind, page, error: "" }); })
       .catch(err => { if (active) setRecords({ items: [], total: 0, totalPages: 1, kind, page, error: err.message }); });
     return () => { active = false; };
-  }, [id, kind, page]);
+  }, [id, kind, page, reload]);
+  useEffect(() => {
+    if (kind !== "attendance") return;
+    const handle = setInterval(() => { if (document.visibilityState === "visible") setReload(value => value + 1); }, 30000);
+    return () => clearInterval(handle);
+  }, [kind]);
 
   return <div className="space-y-5">
     {overviewError && <p role="alert" className="text-brick-600">{overviewError}</p>}
@@ -92,10 +106,11 @@ function ChildReport({ id }) {
       </div>
     </Panel>}
     <div className="flex flex-wrap gap-2" aria-label="Child records">
-      {Object.entries({ tests: "Test reports", invoices: "Fee invoices", payments: "Payment history" }).map(([key, label]) =>
+      {Object.entries({ attendance: "Attendance", tests: "Test reports", invoices: "Fee invoices", payments: "Payment history" }).map(([key, label]) =>
         <button type="button" key={key} aria-pressed={kind === key} className={`rounded-md border px-4 py-2 text-sm ${kind === key ? "bg-action-900 text-white" : "bg-surface text-ink-700"}`} onClick={() => { setKind(key); setPage(1); }}>{label}</button>)}
     </div>
     {kind === "tests" && <p className="text-sm text-ink-500">Only finalized test reports are published here.</p>}
+    {kind === "attendance" && <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-ink-500">One daily check-in per child. Times use Asia/Karachi. Updates every 30 seconds.</p><Button variant="ghost" onClick={() => setReload(value => value + 1)}>Refresh attendance</Button></div>}
     {error && <p role="alert" className="text-brick-600">{error}</p>}
     <DataTable columns={recordColumns[kind]} rows={records.kind === kind && records.page === page ? records.items : []} loading={loading || records.kind !== kind || records.page !== page} emptyMessage="No records available yet." />
     {!loading && records.kind === kind && records.page === page && <Pagination page={page} totalPages={records.totalPages} total={records.total} onChange={setPage} />}
