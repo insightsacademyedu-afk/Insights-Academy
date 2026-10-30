@@ -3,6 +3,8 @@ import api from "./client";
 export const attendanceApi = {
   list: params => api.get("/attendance", { params }).then(res => res.data),
   scan: token => api.post("/attendance/scan", { token }).then(res => res.data),
+  roster: params => api.get("/attendance/roster", { params }).then(res => res.data),
+  mark: body => api.post("/attendance/manual", body).then(res => res.data),
 };
 export const teacherAttendanceApi = {
   scan: token => api.post("/teacher-attendance/scan", { token }).then(res => res.data),

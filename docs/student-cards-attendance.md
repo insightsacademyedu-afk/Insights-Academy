@@ -10,6 +10,7 @@
 - Admins, sub-admins and assigned staff open **Attendance → Scan student card**. Use **Start camera**, or focus the USB scanner field and scan a QR reader configured to send Enter.
 - Parents open their child's report and choose **Attendance**. They can only read attendance for linked children.
 - Attendance views refresh every 30 seconds while visible, with a manual Refresh button. Check-in times and dates use Asia/Karachi.
+- Admins and sub-admins can use **Attendance → Mark class attendance**, choose a class and optional section, select present students, and save today's attendance together. Select-all applies to unmarked students on the current page. A valid QR card is not needed for manual marking. Existing check-ins keep their original time and method. Other students remain in the computed Absent list. Staff and parents cannot manually mark attendance.
 
 ## Card and attendance rules
 
@@ -40,6 +41,8 @@ For a controlled deployment, the existing `db:prepare -- --confirm-db EXACT_DATA
 - `POST /api/student-cards/:studentId/issue|renew|replace|revoke`
 - `POST /api/students/:studentId/enroll` (transactional transfer and card replacement)
 - `POST /api/attendance/scan` with `{ "token": "AMS1_..." }`
+- `GET /api/attendance/roster?class=CLASS_ID&section=OPTIONAL_SECTION_ID&page=1&limit=25`
+- `POST /api/attendance/manual` with `{ "class": "CLASS_ID", "section": "OPTIONAL_SECTION_ID", "students": ["STUDENT_ID"], "day": "TODAYS_PAKISTAN_DATE" }` (up to 100 students, atomic batch)
 - `GET /api/attendance` with optional `student`, `class`, `section`, `academicSession`, `day`, `from`, `to`, `page`, `limit`
 - `GET /api/guardian-portal/children/:studentId/attendance`
 

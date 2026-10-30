@@ -30,7 +30,7 @@ export async function scan(req, res, next) {
       duplicate = Boolean(record);
       if (!record) {
         [record] = await Attendance.create([{
-          student: student._id, day, checkedInAt: now, card: card._id, recordedBy: req.user._id,
+          student: student._id, day, checkedInAt: now, card: card._id, method: "qr", recordedBy: req.user._id,
           class: card.class, section: card.section, academicSession: card.academicSession,
           className: placement.class.name, sectionName: placement.section.name, sessionName: placement.academicSession.name,
         }], { session });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import AppLayout from "../components/AppLayout";
 import AttendanceScanner from "../components/AttendanceScanner";
+import ManualStudentAttendance from "../components/ManualStudentAttendance";
 import Panel from "../components/Panel";
 import Button from "../components/Button";
 import StudentSelector from "../components/StudentSelector";
@@ -18,6 +19,7 @@ const columns = [
   { key: "className", header: "Class / section", render: row => <><div>{row.className} / {row.sectionName}</div><div className="text-xs text-ink-500">{row.sessionName}</div></> },
   { key: "status", header: "Status", render: row => <span className={row.status === "absent" ? "text-brick-600" : "text-moss-600"}>{row.status === "absent" ? "Absent" : "Present"}</span> },
   { key: "checkedInAt", header: "Check-in (PKT)", render: row => attendanceTime(row.checkedInAt) },
+  { key: "method", header: "Method", render: row => row.status === "absent" ? "—" : row.method === "manual" ? "Manual" : "QR scan" },
   { key: "recordedBy", header: "Recorded by", render: row => row.recordedBy?.displayName || row.recordedBy?.username || "—" },
 ];
 
@@ -32,6 +34,7 @@ export default function Attendance() {
   const [absentDay, setAbsentDay] = useState(todayInKarachi);
   const [klass, setKlass] = useState("");
   const [classes, setClasses] = useState([]);
+  const [classError, setClassError] = useState("");
   const [page, setPage] = useState(1);
   const [reload, setReload] = useState(0);
   const [records, setRecords] = useState({ items: [], total: 0, totalPages: 1 });
@@ -41,7 +44,16 @@ export default function Attendance() {
   useEffect(() => {
     if (!manager) return;
     let active = true;
-    classesApi.list({ limit: 100, status: "active" }).then(result => { if (active) setClasses(result.items); }).catch(() => {});
+    async function loadClasses() {
+      const items = [];
+      let page = 1, totalPages = 1;
+      do {
+        const result = await classesApi.list({ page, limit: 100, status: "active" });
+        items.push(...result.items); totalPages = result.totalPages || 1; page++;
+      } while (active && page <= totalPages);
+      if (active) setClasses(items);
+    }
+    loadClasses().catch(err => { if (active) setClassError(err.message); });
     return () => { active = false; };
   }, [manager]);
   useEffect(() => {
@@ -57,8 +69,10 @@ export default function Attendance() {
   }, [page, from, to, status, absentDay, student, klass, reload, queryKey]);
   return <AppLayout title="Attendance">
     <p className="mb-5 text-sm text-ink-600">One check-in per student per day, using Pakistan time. {manager ? "View academy attendance and student history." : "View attendance for your assigned students. Only admin and subadmin can mark attendance."}</p>
-    <div className="mb-5 flex flex-wrap gap-2"><Button variant={tab === "records" ? "primary" : "ghost"} aria-pressed={tab === "records"} onClick={() => setTab("records")}>Attendance records</Button>{manager && <Button variant={tab === "scan" ? "primary" : "ghost"} aria-pressed={tab === "scan"} onClick={() => setTab("scan")}>Scan student card</Button>}</div>
+    <div className="mb-5 flex flex-wrap gap-2"><Button variant={tab === "records" ? "primary" : "ghost"} aria-pressed={tab === "records"} onClick={() => setTab("records")}>Attendance records</Button>{manager && <><Button variant={tab === "scan" ? "primary" : "ghost"} aria-pressed={tab === "scan"} onClick={() => setTab("scan")}>Scan student card</Button><Button variant={tab === "manual" ? "primary" : "ghost"} aria-pressed={tab === "manual"} onClick={() => setTab("manual")}>Mark class attendance</Button></>}</div>
+    {classError && <p role="alert" className="mb-4 text-sm text-brick-600">Could not load classes: {classError}</p>}
     {manager && tab === "scan" && <Panel title="QR check-in"><AttendanceScanner onSaved={() => setReload(value => value + 1)} /></Panel>}
+    {manager && tab === "manual" && <Panel title="Manual class attendance"><ManualStudentAttendance classes={classes} initialClass={klass} onSaved={() => setReload(value => value + 1)} /></Panel>}
     {tab === "records" && <Panel title="Daily attendance & history" action={<Button variant="ghost" disabled={loading} onClick={() => setReload(value => value + 1)}>Refresh</Button>}>
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <div className="mb-4"><StudentSelector value={student} onChange={value => { setStudent(value); setPage(1); }} /></div>
