@@ -10,6 +10,7 @@
 - Admins, sub-admins and assigned staff open **Attendance → Scan student card**. Use **Start camera**, or focus the USB scanner field and scan a QR reader configured to send Enter.
 - Parents open their child's report and choose **Attendance**. They can only read attendance for linked children.
 - Attendance views refresh every 30 seconds while visible, with a manual Refresh button. Check-in times and dates use Asia/Karachi.
+- The Absent list includes each student's class, section and guardian primary phone for follow-up calls. Valid phone numbers are clickable call links; missing numbers show Not available. Staff can only see contact numbers for students in their attendance scope. Guardian contact lookup is not added to the parent attendance API.
 - Admins and sub-admins can use **Attendance → Mark class attendance**, choose a class and optional section, select present students, and save today's attendance together. Select-all applies to unmarked students on the current page. A valid QR card is not needed for manual marking. Existing check-ins keep their original time and method. Other students remain in the computed Absent list. Staff and parents cannot manually mark attendance.
 
 ## Card and attendance rules

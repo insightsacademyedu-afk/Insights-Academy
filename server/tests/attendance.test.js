@@ -198,6 +198,8 @@ test("absent filter lists the whole eligible roster with pagination and removes 
   const first = await admin.agent.get(query);
   expect(first.status).toBe(200);expect(first.body.total).toBe(2);expect(first.body.totalPages).toBe(2);
   expect(first.body.items[0].student._id).toBe(String(missing.student._id));
+  expect(first.body.items[0].className).toBe(chain.klass.name);expect(first.body.items[0].sectionName).toBe(chain.section.name);
+  expect(first.body.items[0].guardianPhone).toBe(missing.guardian.primaryPhone);
   expect(first.body.items[0].status).toBe("absent");expect(first.body.items[0].checkedInAt).toBeNull();
   expect(first.body.items[0].student.guardian).toBeUndefined();expect(first.body.items[0].student.feeDetails).toBeUndefined();
   expect((await admin.agent.get(query + "&page=2")).body.items).toHaveLength(1);
@@ -208,7 +210,7 @@ test("absent filter lists the whole eligible roster with pagination and removes 
 });
 
 test("absent filters enforce teacher scope and let sub-admins see all missing students", async () => {
-  const { admin, chain, student } = await setup();
+  const { admin, chain, student, guardian } = await setup();
   const otherChain = await createAcademicChain(); const other = await createEnrolledStudent(otherChain);
   const teacher = await createTeacherSession(app);
   const query = `/api/attendance?status=absent&day=${academyDay()}`;
@@ -216,6 +218,7 @@ test("absent filters enforce teacher scope and let sub-admins see all missing st
   await assignTeacher(chain, teacher.staff._id);
   const scoped = await teacher.agent.get(query);
   expect(scoped.status).toBe(200);expect(scoped.body.total).toBe(1);expect(scoped.body.items[0].student._id).toBe(String(student._id));
+  expect(scoped.body.items[0].guardianPhone).toBe(guardian.primaryPhone);
   expect((await teacher.agent.get(query + `&student=${other.student._id}`)).body.total).toBe(0);
   expect((await teacher.agent.get(query + `&class=${otherChain.klass._id}`)).body.total).toBe(0);
   const sub = await createAndLoginUser(app, { role: "subadmin" });

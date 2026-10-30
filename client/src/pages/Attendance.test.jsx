@@ -29,12 +29,14 @@ it("subadmin can scan student cards", async () => {
 
 it("filters absent students for one day and keeps present history date controls separate", async () => {
   auth.user.role = "staff";
-  attendanceApi.list.mockImplementation(params => Promise.resolve({ items: params.status === "absent" ? [{ _id: "absent1", student: { fullName: "Amina Ali", admissionNumber: "0042" }, day: params.day, className: "Class 9", sectionName: "A", status: "absent" }] : [], total: params.status === "absent" ? 1 : 0, totalPages: 1 }));
+  attendanceApi.list.mockImplementation(params => Promise.resolve({ items: params.status === "absent" ? [{ _id: "absent1", student: { fullName: "Amina Ali", admissionNumber: "0042" }, day: params.day, className: "Class 9", sectionName: "A", guardianPhone: "+92 300-1234567", status: "absent" }] : [], total: params.status === "absent" ? 1 : 0, totalPages: 1 }));
   render(<Attendance />);
   await screen.findByText(/No check-ins found/);
   fireEvent.change(screen.getByLabelText("Attendance status"), { target: { value: "absent" } });
   expect(await screen.findByText("Amina Ali")).toBeInTheDocument();
   expect(screen.getByRole("cell", { name: "Absent" })).toBeInTheDocument();
+  expect(screen.getByText("Class 9 / A")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Call guardian of Amina Ali at +92 300-1234567" })).toHaveAttribute("href", "tel:+923001234567");
   expect(attendanceApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ status: "absent", day: todayInKarachi() }));
   expect(screen.queryByLabelText("From")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "All dates" })).not.toBeInTheDocument();
@@ -43,4 +45,15 @@ it("filters absent students for one day and keeps present history date controls 
   fireEvent.change(screen.getByLabelText("Attendance status"), { target: { value: "present" } });
   await screen.findByText(/No check-ins found/);
   expect(screen.getByLabelText("From")).toBeInTheDocument();
+});
+
+it("keeps absent students visible when a guardian phone number is unavailable", async () => {
+  auth.user.role = "staff";
+  attendanceApi.list.mockImplementation(params => Promise.resolve({ items: params.status === "absent" ? [{ _id: "absent1", student: { fullName: "Amina Ali" }, day: params.day, className: "Class 9", sectionName: "A", status: "absent", guardianPhone: "" }] : [], total: params.status === "absent" ? 1 : 0, totalPages: 1 }));
+  render(<Attendance />);
+  await screen.findByText(/No check-ins found/);
+  fireEvent.change(screen.getByLabelText("Attendance status"), { target: { value: "absent" } });
+  expect(await screen.findByText("Amina Ali")).toBeInTheDocument();
+  expect(screen.getByText("Not available")).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /Call guardian/ })).not.toBeInTheDocument();
 });

@@ -5,6 +5,7 @@ import Attendance from "../models/Attendance.js";
 import Class from "../models/Class.js";
 import Section from "../models/Section.js";
 import AcademicSession from "../models/AcademicSession.js";
+import Guardian from "../models/Guardian.js";
 import { academyDay, validateDay, ACADEMY_TIMEZONE } from "../utils/academyDay.js";
 import { cardError } from "./studentCards.js";
 import { getTeacherClassSectionPairs } from "../utils/teacherScope.js";
@@ -40,7 +41,7 @@ export async function absentStudents(req, filters, { page, limit, skip }) {
       { $gt: [{ $ifNull: ["$endedAt", "$updatedAt"] }, start] },
     ] } } },
     { $lookup: { from: Student.collection.name, localField: "student", foreignField: "_id", as: "studentProfile",
-      pipeline: [{ $match: { status: "active", archivedAt: null, admissionDate: { $lt: end } } }, { $project: { fullName: 1, admissionNumber: 1, photoUrl: 1 } }] } },
+      pipeline: [{ $match: { status: "active", archivedAt: null, admissionDate: { $lt: end } } }, { $project: { fullName: 1, admissionNumber: 1, photoUrl: 1, guardian: 1 } }] } },
     { $unwind: "$studentProfile" },
     // Check attendance across every class/card so a same-day transfer cannot create an absence.
     { $lookup: { from: Attendance.collection.name, let: { studentId: "$student" }, as: "checkIn",
@@ -54,7 +55,9 @@ export async function absentStudents(req, filters, { page, limit, skip }) {
   }
   pipeline.push({ $facet: {
     items: [{ $sort: { "studentProfile.fullName": 1, "studentProfile._id": 1 } }, { $skip: skip }, { $limit: limit },
-      { $project: { _id: { $concat: ["absent-", { $toString: "$student" }, "-", day] }, student: "$studentProfile", day: { $literal: day }, status: { $literal: "absent" },
+      ...(req.user.role !== "guardian" ? [{ $lookup: { from: Guardian.collection.name, localField: "studentProfile.guardian", foreignField: "_id", as: "guardianContact", pipeline: [{ $project: { _id: 0, primaryPhone: 1 } }] } }] : []),
+      { $project: { _id: { $concat: ["absent-", { $toString: "$student" }, "-", day] }, student: { _id: "$studentProfile._id", fullName: "$studentProfile.fullName", admissionNumber: "$studentProfile.admissionNumber", photoUrl: "$studentProfile.photoUrl" }, day: { $literal: day }, status: { $literal: "absent" },
+        ...(req.user.role !== "guardian" ? { guardianPhone: { $ifNull: [{ $arrayElemAt: ["$guardianContact.primaryPhone", 0] }, ""] } } : {}),
         class: 1, section: 1, academicSession: 1, className: "$classInfo.name", sectionName: "$sectionInfo.name", sessionName: "$academicSessionInfo.name",
         checkedInAt: { $literal: null }, recordedBy: { $literal: null } } }],
     count: [{ $count: "total" }],

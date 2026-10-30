@@ -23,6 +23,17 @@ const columns = [
   { key: "recordedBy", header: "Recorded by", render: row => row.recordedBy?.displayName || row.recordedBy?.username || "—" },
 ];
 
+const absentColumns = [
+  columns[0], columns[1], columns[2],
+  { key: "guardianPhone", header: "Guardian phone", render: row => {
+    const phone = row.guardianPhone?.trim();
+    if (!phone) return <span className="text-ink-500">Not available</span>;
+    const number = phone.replace(/[^\d+]/g, "");
+    return /^\+?\d{6,15}$/.test(number) ? <a className="text-ink-800 underline underline-offset-2 hover:text-brass-600" href={`tel:${number}`} aria-label={`Call guardian of ${row.student?.fullName || "student"} at ${phone}`}>{phone}</a> : <span>{phone}</span>;
+  } },
+  columns[3],
+];
+
 export default function Attendance() {
   const { user } = useAuth();
   const manager = ["admin", "subadmin"].includes(user?.role);
@@ -84,7 +95,7 @@ export default function Attendance() {
       </div>
       {error && <p role="alert" className="mb-4 text-sm text-brick-600">{error}</p>}
       {status === "absent" && <p className="mb-4 text-sm text-ink-600">Absent means no check-in on the selected date among active, enrolled students. Today's list updates as students arrive; holidays and leave are not excluded automatically.</p>}
-      <DataTable columns={columns} rows={loading ? [] : records.items} loading={loading} emptyMessage={status === "absent" ? "No absent students found for this date and these filters." : "No check-ins found for these filters."} />
+      <DataTable columns={status === "absent" ? absentColumns : columns} rows={loading ? [] : records.items} loading={loading} emptyMessage={status === "absent" ? "No absent students found for this date and these filters." : "No check-ins found for these filters."} />
       {!loading && <Pagination page={page} total={records.total} totalPages={records.totalPages} onChange={setPage} />}
       <p className="mt-3 text-xs text-ink-500">Refreshes every 30 seconds while this page is visible. Class at check-in is preserved after transfers.</p>
     </Panel>}
