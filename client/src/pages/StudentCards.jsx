@@ -68,16 +68,16 @@ function StudentCardWorkspace({ id, onSelect }) {
     {error && <p role="alert" className="text-sm text-brick-600">{error}</p>}
     {student && <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
       <div>
-        {card ? <div className="overflow-hidden rounded-xl border border-ink-200 bg-white text-[#1e2a44] shadow-sm" aria-label="Student identity card">
+        {card ? <div className="mx-auto w-full max-w-[340px] overflow-hidden rounded-xl border border-ink-200 bg-white text-center text-[#1e2a44] shadow-sm" aria-label="Student identity card">
           <div className="border-b-4 border-[#b07f22] bg-[#1e2a44] px-5 py-4 text-white"><div className="font-display text-xl">{settings.academyName}</div><div className="mt-1 text-xs tracking-widest">STUDENT IDENTITY CARD</div></div>
           <div className="p-5">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col items-center gap-4">
               {safePhotoUrl(student.photoUrl) ? <img src={safePhotoUrl(student.photoUrl)} alt={student.fullName} className="h-28 w-24 shrink-0 rounded-md object-cover" /> : <div className="flex h-28 w-24 shrink-0 items-center justify-center rounded-md bg-[#f4f2ec] text-sm text-[#55658a]">No photo</div>}
               <div className="min-w-0"><h2 className="font-display text-2xl">{student.fullName}</h2><p className="mt-1 text-sm">Student ID: {student.admissionNumber}</p><p className="mt-2 font-medium">{card.className} / {card.sectionName}</p><p className="text-xs text-[#55658a]">{card.sessionName}</p></div>
             </div>
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs text-[#55658a]">Guardian phone</p><p className="mt-1">{student.guardian?.primaryPhone || "—"}</p><p className="mt-3 text-xs text-[#55658a]">Issued {cardDate(card.issuedAt)}</p></div>{qr && <img src={qr} alt="Student attendance QR code" className="h-32 w-32" />}</div>
+            <div className="mt-5 flex flex-col items-center gap-3"><div><p className="text-xs text-[#55658a]">Guardian phone</p><p className="mt-1">{student.guardian?.primaryPhone || "—"}</p></div>{qr && <img src={qr} alt="Student attendance QR code" className="h-32 w-32" />}<p className="text-xs text-[#55658a]">Issued {cardDate(card.issuedAt)}</p></div>
           </div>
-          <div className="flex flex-wrap justify-between gap-2 border-t border-[#dbd6c8] px-5 py-3 text-xs"><span>Valid through {cardDate(new Date(new Date(card.expiresAt).getTime() - 1))}</span><strong className={valid ? "text-[#3f6b4a]" : "text-[#a34331]"}>{card.effectiveStatus.replaceAll("_", " ")} · v{card.version}</strong></div>
+          <div className="flex flex-col items-center gap-2 border-t border-[#dbd6c8] px-5 py-3 text-xs"><span>Valid through {cardDate(new Date(new Date(card.expiresAt).getTime() - 1))}</span><strong className={valid ? "text-[#3f6b4a]" : "text-[#a34331]"}>{card.effectiveStatus.replaceAll("_", " ")} · v{card.version}</strong></div>
         </div> : <Panel title="No card issued"><p className="text-sm text-ink-600">Issue a card for this student's current class placement.</p></Panel>}
         <div className="mt-4 flex flex-wrap gap-2">
           <Button variant="ghost" disabled={busy || !valid || !qr} onClick={() => exportCard(false)}>Download card</Button>

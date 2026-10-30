@@ -5,7 +5,7 @@
 - Admins and sub-admins open **Student cards**, select a student, and view, edit, download or print their card. The card icon beside a student opens the same screen.
 - New admissions automatically receive a card. Existing students can receive their first card using **Issue card**.
 - Upload a JPG, PNG or WebP from the student form or **Edit card details**. Photos are resized before saving. Changes to the name, photo and guardian phone update the shared student profile.
-- **Download card** saves a PNG. **Print card / PDF** opens the browser print dialog; choose Save as PDF if needed. The printed card is 85.6 × 54 mm.
+- **Download card** saves a portrait PNG. **Print card / PDF** opens the browser print dialog; choose Save as PDF if needed. The printed portrait card is 54 × 85.6 mm.
 - Admins, sub-admins and assigned staff open **Attendance → Scan student card**. Use **Start camera**, or focus the USB scanner field and scan a QR reader configured to send Enter.
 - Parents open their child's report and choose **Attendance**. They can only read attendance for linked children.
 - Attendance views refresh every 30 seconds while visible, with a manual Refresh button. Check-in times and dates use Asia/Karachi.
