@@ -5,7 +5,7 @@ import StudentClassAssignment from "../models/StudentClassAssignment.js";
 import Attendance from "../models/Attendance.js";
 import { lockStudent, currentPlacement, cardError } from "../services/studentCards.js";
 import { academyDay, validateDay, ACADEMY_TIMEZONE } from "../utils/academyDay.js";
-import { getTeacherClassSectionPairs, buildStudentAssignmentFilterFromPairs, isTeacherAuthorizedFor } from "../utils/teacherScope.js";
+import { getTeacherClassSectionPairs, buildStudentAssignmentFilterFromPairs } from "../utils/teacherScope.js";
 import { buildListQuery, paginatedResponse } from "../utils/listQuery.js";
 
 export async function scan(req, res, next) {
@@ -18,9 +18,6 @@ export async function scan(req, res, next) {
     await mongoose.connection.transaction(async session => {
       const student = await lockStudent(identity.student, session);
       const placement = await currentPlacement(student._id, session);
-      if (req.user.role === "staff" && !await isTeacherAuthorizedFor(req.user.staffId, {
-        classId: placement.class._id, sectionId: placement.section._id, academicSession: placement.academicSession._id,
-      })) throw cardError("You are not assigned to this student's class and section", 403);
       const card = await StudentCard.findOne({ token }).session(session);
       const now = new Date();
       if (student.status !== "active") throw cardError("Student is inactive; attendance was not saved");

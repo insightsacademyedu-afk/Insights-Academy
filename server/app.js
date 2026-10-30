@@ -37,6 +37,8 @@ import subAdminRoutes from "./routes/subAdminRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import studentCardRoutes from "./routes/studentCardRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
+import teacherAttendanceRoutes from "./routes/teacherAttendanceRoutes.js";
+import teacherCardRoutes from "./routes/teacherCardRoutes.js";
 
 const app = express();
 
@@ -65,7 +67,7 @@ if (!config.isProd && !config.serveClient) {
 }
 
 app.use((req, res, next) => {
-  const limiter = req.method === "POST" && /^\/api\/attendance\/scan\/?$/i.test(req.path) ? attendanceIngressRateLimiter : apiRateLimiter;
+  const limiter = req.method === "POST" && /^\/api\/(?:attendance|teacher-attendance)\/scan\/?$/i.test(req.path) ? attendanceIngressRateLimiter : apiRateLimiter;
   limiter(req, res, next);
 });
 app.use("/api", (_req, res, next) => {
@@ -95,6 +97,8 @@ app.use("/api/teacher-assignments", teacherAssignmentRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/student-cards", studentCardRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/teacher-attendance", teacherAttendanceRoutes);
+app.use("/api/teacher-cards", teacherCardRoutes);
 app.use("/api/fees", feeRoutes);
 app.use("/api/tests", testRoutes);
 app.use("/api/expense-categories", expenseCategoryRoutes);

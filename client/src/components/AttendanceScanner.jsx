@@ -4,7 +4,7 @@ import { Field, TextInput } from "./FormFields";
 import { attendanceApi } from "../api/attendance";
 import { attendanceTime, safePhotoUrl } from "../lib/attendance";
 
-export default function AttendanceScanner({ onSaved }) {
+export default function AttendanceScanner({ onSaved, scan = attendanceApi.scan, employee = false }) {
   const video = useRef(null);
   const [running, setRunning] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -15,6 +15,8 @@ export default function AttendanceScanner({ onSaved }) {
   const last = useRef({ token: "", at: 0 });
   const mounted = useRef(true);
   const savedCallback = useRef(onSaved);
+  const scanCallback = useRef(scan);
+  useEffect(() => { scanCallback.current = scan; }, [scan]);
   useEffect(() => { savedCallback.current = onSaved; }, [onSaved]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
@@ -25,7 +27,7 @@ export default function AttendanceScanner({ onSaved }) {
     last.current = { token: value, at: Date.now() };
     inFlight.current = true; setBusy(true); setError(""); setResult(null);
     try {
-      const saved = await attendanceApi.scan(value);
+      const saved = await scanCallback.current(value);
       if (!mounted.current) return;
       setResult(saved); setToken(""); savedCallback.current?.();
     } catch (err) { if (mounted.current) setError(err.message || "Attendance could not be saved. Check your connection and retry."); }
@@ -64,8 +66,8 @@ export default function AttendanceScanner({ onSaved }) {
     {busy && <p role="status" className="text-sm text-ink-500">Checking card and saving attendance…</p>}
     {error && <p role="alert" className="rounded-md border border-brick-600/30 bg-brick-100 p-3 text-sm text-brick-600">{error}</p>}
     {result && <div role="status" className="flex flex-wrap items-center gap-4 rounded-lg border border-moss-600/30 bg-moss-100 p-4 text-moss-600">
-      {safePhotoUrl(result.student.photoUrl) && <img src={safePhotoUrl(result.student.photoUrl)} alt={result.student.fullName} className="h-20 w-16 rounded object-cover" />}
-      <div><p className="font-medium">{result.message}</p><p>{result.student.fullName} · {result.student.admissionNumber}</p><p className="text-sm">{result.record.className} / {result.record.sectionName} · {attendanceTime(result.record.checkedInAt)} PKT</p></div>
+      {safePhotoUrl((result.teacher || result.student).photoUrl) && <img src={safePhotoUrl((result.teacher || result.student).photoUrl)} alt={(result.teacher || result.student).fullName} className="h-20 w-16 rounded object-cover" />}
+      <div><p className="font-medium">{result.message}</p><p>{(result.teacher || result.student).fullName} · {employee ? result.employeeId : result.student.admissionNumber}</p><p className="text-sm">{employee ? result.record.designation || "Teacher" : `${result.record.className} / ${result.record.sectionName}`} · {attendanceTime(result.record.checkedInAt)} PKT</p></div>
     </div>}
   </div>;
 }

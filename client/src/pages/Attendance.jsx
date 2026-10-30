@@ -54,9 +54,9 @@ export default function Attendance() {
     return () => { active = false; };
   }, [page, from, to, student, klass, reload, queryKey]);
   return <AppLayout title="Attendance">
-    <p className="mb-5 text-sm text-ink-600">One check-in per student per day, using Pakistan time. {manager ? "View academy attendance and student history." : "View and scan attendance for your assigned students."}</p>
-    <div className="mb-5 flex flex-wrap gap-2"><Button variant={tab === "records" ? "primary" : "ghost"} aria-pressed={tab === "records"} onClick={() => setTab("records")}>Attendance records</Button><Button variant={tab === "scan" ? "primary" : "ghost"} aria-pressed={tab === "scan"} onClick={() => setTab("scan")}>Scan student card</Button></div>
-    {tab === "scan" && <Panel title="QR check-in"><AttendanceScanner onSaved={() => setReload(value => value + 1)} /></Panel>}
+    <p className="mb-5 text-sm text-ink-600">One check-in per student per day, using Pakistan time. {manager ? "View academy attendance and student history." : "View attendance for your assigned students. Only admin and subadmin can mark attendance."}</p>
+    <div className="mb-5 flex flex-wrap gap-2"><Button variant={tab === "records" ? "primary" : "ghost"} aria-pressed={tab === "records"} onClick={() => setTab("records")}>Attendance records</Button>{manager && <Button variant={tab === "scan" ? "primary" : "ghost"} aria-pressed={tab === "scan"} onClick={() => setTab("scan")}>Scan student card</Button>}</div>
+    {manager && tab === "scan" && <Panel title="QR check-in"><AttendanceScanner onSaved={() => setReload(value => value + 1)} /></Panel>}
     {tab === "records" && <Panel title="Daily attendance & history" action={<Button variant="ghost" disabled={loading} onClick={() => setReload(value => value + 1)}>Refresh</Button>}>
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <div className="mb-4"><StudentSelector value={student} onChange={value => { setStudent(value); setPage(1); }} /></div>

@@ -16,6 +16,12 @@ const staffSchema = new Schema(
       default: null,
     },
     fullName: { type: String, required: true, trim: true },
+    cardLockVersion: { type: Number, default: 0, select: false },
+    cardDesignation: { type: String, trim: true, maxlength: 120, default: "" },
+    photoUrl: {
+      type: String, trim: true, default: "", maxlength: 350000,
+      validate: { validator: value => !value || /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value) || /^https?:\/\//i.test(value) || /^\/(?!\/)/.test(value), message: "Use a valid JPG, PNG or WebP photo" },
+    },
     designation: {
       type: Schema.Types.ObjectId,
       ref: "Designation",

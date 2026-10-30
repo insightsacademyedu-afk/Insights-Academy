@@ -21,7 +21,7 @@
 - Attendance is unique on `(student, day)`, across every card, class and scanning account. Scans and card/transfer actions serialize per student in MongoDB transactions, preventing a transfer or replacement from racing a successful scan.
 - Attendance preserves the class/section/session names at check-in. A later transfer does not rewrite history or allow a second check-in that day.
 - Attendance records are confirmed Present check-ins. The system does not infer absences, holidays or leave from a missing scan.
-- Admin and sub-admin can view all records. Staff can scan assigned students and read records within their assigned class/section/session scope. Parents have read-only child-specific endpoints; they cannot scan or manage cards.
+- Admin and sub-admin can view all records. Only admin and sub-admin can scan student cards. Staff can read records within their assigned class/section/session scope. Parents have read-only child-specific endpoints; they cannot scan or manage cards.
 
 ## Setup and deployment
 
@@ -45,3 +45,20 @@ For a controlled deployment, the existing `db:prepare -- --confirm-db EXACT_DATA
 All mutations use the existing authenticated-session and CSRF protections. Card tokens are excluded from ordinary model queries, history and attendance responses. Scans derive their student, date, time, placement and recording user on the server.
 
 Scanning has a separate limit of 120 requests per minute per signed-in account, plus 600 requests per minute per IP before authentication, so morning arrivals do not consume the ordinary portal request budget.
+
+## Teacher attendance
+
+Admin and sub-admin can use Teacher attendance to mark an active employee present today and view history. Teachers and guardians cannot access these records or the attendance employee picker. The picker exposes only name and designation, including profiles without login accounts. Records preserve name/designation at check-in, use Pakistan time, and are unique per employee/day. No absence is inferred. Employee cards use the approved navy-and-gold theme shared with student cards, including PNG download and print/PDF export. Admin and sub-admin can edit name, photo and the card designation label without changing employee ID or QR. Designation defaults to the staff designation title. Teacher attendance supports both manual selection and QR scanning; replacement and revocation invalidate the old QR.
+
+- `GET /api/teacher-attendance/teachers` with optional `search`, `page`, `limit`
+- `POST /api/teacher-attendance` with `{ "teacher": "staff-id" }`
+- `GET /api/teacher-attendance` with optional `teacher`, `from`, `to`, `page`, `limit`
+
+## Employee cards
+
+- `GET /api/teacher-cards/:id` returns the current card and token-free history to admin/sub-admin.
+- `PUT /api/teacher-cards/:id` accepts only `fullName`, `cardDesignation`, `photoUrl`. The designation is a card label; it does not change the staff designation catalog or permissions.
+- `POST /api/teacher-cards/:id/issue|renew|replace|revoke` manages annual cards.
+- `POST /api/teacher-attendance/scan` accepts an `AMT1_` token. Teachers and guardians cannot scan or view teacher records.
+
+Employee IDs use the immutable staff ID prefixed with EMP. They remain stable across replacements and profile edits. Manual check-ins and QR scans serialize on the staff record and share the employee/day uniqueness constraint. Startup and db:prepare create the teacher-card indexes even with automatic indexing disabled.

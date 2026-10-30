@@ -3,6 +3,8 @@ import { ensureUserEmailIndex } from "../utils/userEmailIndex.js";
 import { ensureStudentAssignmentIndex } from "../utils/studentAssignmentIndex.js";
 import StudentCard from "../models/StudentCard.js";
 import Attendance from "../models/Attendance.js";
+import TeacherAttendance from "../models/TeacherAttendance.js";
+import TeacherCard from "../models/TeacherCard.js";
 
 export async function connectDB() {
   const uri = process.env.MONGO_URI;
@@ -28,6 +30,8 @@ export async function connectDB() {
   await ensureStudentAssignmentIndex(mongoose.connection.collection("studentclassassignments"));
   await StudentCard.createIndexes();
   await Attendance.createIndexes();
+  await TeacherAttendance.createIndexes();
+  await TeacherCard.createIndexes();
   await mongoose.connection.collection("users").createIndex({ phone: 1 }, {
     unique: true, name: "guardian_phone_unique", partialFilterExpression: { role: "guardian", phone: { $type: "string" } },
   });

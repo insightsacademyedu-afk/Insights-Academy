@@ -47,6 +47,8 @@ export const NAV_SECTIONS = [
       { to: "/students", label: "Students", icon: GraduationCap, phase: 4, adminOnly: false },
       { to: "/student-cards", label: "Student cards", icon: IdCard, phase: 4, adminOnly: true },
       { to: "/attendance", label: "Attendance", icon: ScanLine, phase: 4, adminOnly: false },
+      { to: "/teacher-attendance", label: "Teacher attendance", icon: ClipboardList, phase: 4, adminOnly: true },
+      { to: "/teacher-cards", label: "Teacher cards", icon: IdCard, phase: 4, adminOnly: true },
     ],
   },
   {
@@ -64,7 +66,7 @@ export const NAV_SECTIONS = [
 ];
 
 export const CURRENT_PHASE = 9;
-export const SUBADMIN_PATHS = ["/", "/account", "/students", "/student-cards", "/attendance", "/tests", "/fees", "/reports"];
+export const SUBADMIN_PATHS = ["/", "/account", "/students", "/student-cards", "/attendance", "/teacher-attendance", "/teacher-cards", "/tests", "/fees", "/reports"];
 
 export function getNavSections(role) {
   if (!["guardian", "subadmin"].includes(role)) return NAV_SECTIONS;

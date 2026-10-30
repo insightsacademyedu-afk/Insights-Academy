@@ -6,5 +6,5 @@ import { attendanceAccountRateLimiter } from "../middleware/rateLimiters.js";
 const router = Router();
 router.use(requireAuth, requireRole("admin", "subadmin", "staff"));
 router.get("/", listAttendance);
-router.post("/scan", attendanceAccountRateLimiter, scan);
+router.post("/scan", requireRole("admin", "subadmin"), attendanceAccountRateLimiter, scan);
 export default router;

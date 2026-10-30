@@ -46,12 +46,12 @@ test("new enrollment automatically issues a class-linked random static QR; edits
   expect((await StudentCard.findOne({ student: id }).lean()).token).toBeUndefined();
 });
 
-test("simultaneous admin/sub-admin/staff scans create exactly one daily record", async () => {
+test("simultaneous admin/sub-admin scans create exactly one daily record", async () => {
   const { admin, chain, student, card } = await setup();
   const sub = await createAndLoginUser(app, { role: "subadmin" });
   const teacher = await createTeacherSession(app);
   await assignTeacher(chain, teacher.staff._id);
-  const responses = await Promise.all([admin, sub, teacher].map(account => post(account, "/api/attendance/scan", { token: card.token, day: "2000-01-01", student: new mongoose.Types.ObjectId() })));
+  const responses = await Promise.all([admin, sub, admin].map(account => post(account, "/api/attendance/scan", { token: card.token, day: "2000-01-01", student: new mongoose.Types.ObjectId() })));
   expect(responses.map(response => response.status).sort()).toEqual([200, 200, 201]);
   expect(responses.filter(response => response.body.duplicate)).toHaveLength(2);
   expect(await Attendance.countDocuments({ student: student._id })).toBe(1);
@@ -137,13 +137,14 @@ test("expired, revoked, unknown, inactive and stale-class cards cannot mark atte
   expect((await post(admin, "/api/attendance/scan", { token: replacement.body.card.token })).status).toBe(201);
 });
 
-test("teachers see/scan only assigned students; parents see only linked children and cannot scan or manage cards", async () => {
+test("teachers can only view assigned students; parents see only linked children and cannot scan or manage cards", async () => {
   const { admin, chain, student, card } = await setup();
   const teacher = await createTeacherSession(app);
   expect((await post(teacher, "/api/attendance/scan", { token: card.token })).status).toBe(403);
   expect((await teacher.agent.get(`/api/student-cards/${student._id}`)).status).toBe(403);
   await assignTeacher(chain, teacher.staff._id);
-  expect((await post(teacher, "/api/attendance/scan", { token: card.token })).status).toBe(201);
+  expect((await post(teacher, "/api/attendance/scan", { token: card.token })).status).toBe(403);
+  expect((await post(admin, "/api/attendance/scan", { token: card.token })).status).toBe(201);
   const otherChain = await createAcademicChain(); const other = await createEnrolledStudent(otherChain);
   const otherCard = (await post(admin, `/api/student-cards/${other.student._id}/issue`)).body.card;
   await post(admin, "/api/attendance/scan", { token: otherCard.token });
