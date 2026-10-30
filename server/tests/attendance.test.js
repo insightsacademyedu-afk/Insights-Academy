@@ -181,3 +181,77 @@ test("legacy placement index migrates without losing historical records", async 
   await expect(collection.insertOne({ student, academicSession, status: "active" })).rejects.toMatchObject({ code: 11000 });
   await collection.drop();
 });
+
+test("absent filter lists the whole eligible roster with pagination and removes students when scanned", async () => {
+  const { admin, chain } = await setup(); // This student's card is issued but not scanned.
+  const missing = await createEnrolledStudent(chain, { fullName: "A Missing Student" });
+  const present = await createEnrolledStudent(chain, { fullName: "Present Student" });
+  const card = (await post(admin, `/api/student-cards/${present.student._id}/issue`)).body.card;
+  await post(admin, "/api/attendance/scan", { token: card.token });
+  const inactive = await createEnrolledStudent(chain);
+  await Student.updateOne({ _id: inactive.student._id }, { status: "inactive" });
+  const archived = await createEnrolledStudent(chain);
+  await Student.updateOne({ _id: archived.student._id }, { archivedAt: new Date() });
+  const future = await createEnrolledStudent(chain);
+  await StudentClassAssignment.collection.updateOne({ _id: future.assignment._id }, { $set: { createdAt: new Date(Date.now() + 172800000) } });
+  const query = `/api/attendance?status=absent&day=${academyDay()}&limit=1`;
+  const first = await admin.agent.get(query);
+  expect(first.status).toBe(200);expect(first.body.total).toBe(2);expect(first.body.totalPages).toBe(2);
+  expect(first.body.items[0].student._id).toBe(String(missing.student._id));
+  expect(first.body.items[0].status).toBe("absent");expect(first.body.items[0].checkedInAt).toBeNull();
+  expect(first.body.items[0].student.guardian).toBeUndefined();expect(first.body.items[0].student.feeDetails).toBeUndefined();
+  expect((await admin.agent.get(query + "&page=2")).body.items).toHaveLength(1);
+  expect(await Attendance.countDocuments()).toBe(1); // Listing absences never writes attendance.
+  const missingCard = (await post(admin, `/api/student-cards/${missing.student._id}/issue`)).body.card;
+  await post(admin, "/api/attendance/scan", { token: missingCard.token });
+  expect((await admin.agent.get(query)).body.total).toBe(1);
+});
+
+test("absent filters enforce teacher scope and let sub-admins see all missing students", async () => {
+  const { admin, chain, student } = await setup();
+  const otherChain = await createAcademicChain(); const other = await createEnrolledStudent(otherChain);
+  const teacher = await createTeacherSession(app);
+  const query = `/api/attendance?status=absent&day=${academyDay()}`;
+  expect((await teacher.agent.get(query)).body.total).toBe(0);
+  await assignTeacher(chain, teacher.staff._id);
+  const scoped = await teacher.agent.get(query);
+  expect(scoped.status).toBe(200);expect(scoped.body.total).toBe(1);expect(scoped.body.items[0].student._id).toBe(String(student._id));
+  expect((await teacher.agent.get(query + `&student=${other.student._id}`)).body.total).toBe(0);
+  expect((await teacher.agent.get(query + `&class=${otherChain.klass._id}`)).body.total).toBe(0);
+  const sub = await createAndLoginUser(app, { role: "subadmin" });
+  expect((await sub.agent.get(query)).body.total).toBe(2);
+  expect((await admin.agent.get(query + `&class=${otherChain.klass._id}`)).body.total).toBe(1);
+});
+
+test("absences follow class transfers, preserve past placements and exclude check-ins made in the old class", async () => {
+  const { admin, chain, student, assignment } = await setup();
+  const before = new Date(Date.now() - 3 * 86400000);
+  await Student.updateOne({ _id: student._id }, { admissionDate: before });
+  await StudentClassAssignment.collection.updateOne({ _id: assignment._id }, { $set: { createdAt: before } });
+  const klass = await Class.create({ name: "New class", academicSession: chain.session._id });
+  const section = await Section.create({ name: "A", class: klass._id });
+  const transferred = await post(admin, `/api/students/${student._id}/enroll`, { class: klass._id, section: section._id, academicSession: chain.session._id });
+  expect(transferred.status).toBe(201);
+  const query = `/api/attendance?status=absent&day=${academyDay()}`;
+  expect((await admin.agent.get(query + `&class=${chain.klass._id}`)).body.total).toBe(0);
+  const current = await admin.agent.get(query + `&class=${klass._id}`);
+  expect(current.body.total).toBe(1);expect(current.body.items[0].className).toBe("New class");
+  await StudentClassAssignment.updateOne({ _id: transferred.body._id }, { archivedAt: new Date() });
+  expect((await admin.agent.get(query)).body.total).toBe(0); // Never fall back to the transferred-out class.
+  await StudentClassAssignment.updateOne({ _id: transferred.body._id }, { archivedAt: null });
+  const yesterday = academyDay(new Date(Date.now() - 86400000));
+  const historical = await admin.agent.get(`/api/attendance?status=absent&day=${yesterday}`);
+  expect(historical.body.items[0].className).toBe("Class 9");
+  const currentCard = (await admin.agent.get(`/api/student-cards/${student._id}`)).body.card;
+  await post(admin, "/api/attendance/scan", { token: currentCard.token });
+  await Attendance.updateOne({ student: student._id }, { class: chain.klass._id });
+  expect((await admin.agent.get(query)).body.total).toBe(0);
+});
+
+test("absent filters reject future dates and ambiguous ranges", async () => {
+  const { admin } = await setup();
+  const tomorrow = academyDay(new Date(Date.now() + 86400000));
+  for (const query of [`status=absent&day=${tomorrow}`, "status=absent&day=invalid", "status=absent&from=2026-10-01&to=2026-10-30", "status=unknown"]) {
+    expect((await admin.agent.get(`/api/attendance?${query}`)).status).toBe(400);
+  }
+});

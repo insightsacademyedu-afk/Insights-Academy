@@ -36,6 +36,7 @@ const studentClassAssignmentSchema = new Schema(
       required: true,
     },
     rollNumber: { type: String, required: true, trim: true },
+    endedAt: { type: Date, default: null },
     status: {
       type: String,
       enum: ["active", "transferred_out", "completed"],

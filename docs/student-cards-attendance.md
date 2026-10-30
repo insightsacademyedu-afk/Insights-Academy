@@ -21,7 +21,7 @@
 - Revoked, replaced, expired, inactive-student and stale-placement cards cannot mark attendance. Archived or inactive academic setup also prevents scans.
 - Attendance is unique on `(student, day)`, across every card, class and scanning account. Scans and card/transfer actions serialize per student in MongoDB transactions, preventing a transfer or replacement from racing a successful scan.
 - Attendance preserves the class/section/session names at check-in. A later transfer does not rewrite history or allow a second check-in that day.
-- Attendance records are confirmed Present check-ins. The system does not infer absences, holidays or leave from a missing scan.
+- Attendance records are confirmed Present check-ins. In **Attendance → Attendance status → Absent**, select one date to list active, enrolled students without a check-in that day. This computed list updates when attendance is scanned; it does not save permanent absence records. Class/student filters, pagination and staff permissions apply. Holidays and leave are not excluded automatically. Future dates are rejected. Historical results use the latest placement that existed on the selected date, with current student/academic activation and archive status; they are not frozen historical absence reports.
 - Admin and sub-admin can view all records. Only admin and sub-admin can scan student cards. Staff can read records within their assigned class/section/session scope. Parents have read-only child-specific endpoints; they cannot scan or manage cards.
 
 ## Setup and deployment

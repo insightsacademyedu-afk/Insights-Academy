@@ -7,6 +7,7 @@ import { lockStudent, currentPlacement, cardError } from "../services/studentCar
 import { academyDay, validateDay, ACADEMY_TIMEZONE } from "../utils/academyDay.js";
 import { getTeacherClassSectionPairs, buildStudentAssignmentFilterFromPairs } from "../utils/teacherScope.js";
 import { buildListQuery, paginatedResponse } from "../utils/listQuery.js";
+import { absentStudents } from "../services/absentStudents.js";
 
 export async function scan(req, res, next) {
   try {
@@ -50,6 +51,8 @@ export async function listAttendance(req, res, next) {
         filter[key] = req.query[key];
       }
     }
+    if (req.query.status && !["present", "absent"].includes(req.query.status)) throw cardError("Invalid attendance status", 400);
+    if (req.query.status === "absent") return res.json(await absentStudents(req, filter, { page, limit, skip }));
     if (req.query.day) filter.day = validateDay(req.query.day);
     else if (req.query.from || req.query.to) {
       filter.day = {};

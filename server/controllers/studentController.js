@@ -274,7 +274,7 @@ export async function enroll(req, res, next) {
       if (existing && String(existing.class) === String(classId) && String(existing.section) === String(section) && String(existing.academicSession) === String(academicSession)) {
         throw cardError("Student is already enrolled in this class and section");
       }
-      await StudentClassAssignment.updateMany({ student: student._id, status: "active", archivedAt: null }, { $set: { status: "transferred_out" } }, { session });
+      await StudentClassAssignment.updateMany({ student: student._id, status: "active", archivedAt: null }, { $set: { status: "transferred_out", endedAt: new Date() } }, { session });
       const rollNumber = await nextRollNumber({ class: classId, section, academicSession }, session);
       const [created] = await StudentClassAssignment.create([{
         student: student._id,
