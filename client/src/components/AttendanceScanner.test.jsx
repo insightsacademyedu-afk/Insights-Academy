@@ -65,3 +65,12 @@ it("decodes camera results once during the cooldown and stops the camera on unmo
     else delete navigator.mediaDevices;
   }
 });
+
+it("shows a teacher response from the shared scanner without student-only fields", async () => {
+  attendanceApi.scan.mockResolvedValue({ message: "Teacher attendance saved", teacher: { fullName: "Ayesha Khan" }, employeeId: "EMP-42", record: { designation: "Teacher", checkedInAt: "2026-10-30T03:12:00Z" } });
+  render(<AttendanceScanner />);
+  fireEvent.change(screen.getByLabelText("USB scanner or QR token"), { target: { value: "AMT1_token" } });
+  fireEvent.click(screen.getByRole("button", { name: "Mark attendance" }));
+  expect(await screen.findByText("Teacher attendance saved")).toBeInTheDocument();
+  expect(screen.getByText(/Ayesha Khan.*EMP-42/)).toBeInTheDocument();
+});

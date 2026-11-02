@@ -4,7 +4,7 @@ import TeacherAttendance from "./TeacherAttendance";
 import { teacherAttendanceApi } from "../api/attendance";
 
 vi.mock("../components/AppLayout", () => ({ default: ({ children }) => <div>{children}</div> }));
-vi.mock("../api/attendance", () => ({ teacherAttendanceApi: {
+vi.mock("../api/attendance", () => ({ attendanceApi: { scan: vi.fn() }, teacherAttendanceApi: {
   scan: vi.fn(),
   list: vi.fn().mockResolvedValue({ items: [], total: 0, totalPages: 1 }),
   teachers: vi.fn().mockResolvedValue({ items: [{ _id: "teacher1", fullName: "Ayesha Khan", designation: { title: "Teacher" } }] }),

@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";
 import AppLayout from "../components/AppLayout";
 import IdentityCard from "../components/IdentityCard";
+import StudentCardDirectory from "../components/StudentCardDirectory";
 import StudentSelector from "../components/StudentSelector";
 import StudentPhotoInput from "../components/StudentPhotoInput";
 import Panel from "../components/Panel";
@@ -20,6 +21,7 @@ export default function StudentCards() {
   const id = params.get("student") || "";
   return <AppLayout title="Student cards">
     <p className="mb-4 text-sm text-ink-600">Cards are valid for one year. A class transfer replaces the card and invalidates its old QR immediately.</p>
+    <StudentCardDirectory onSelect={student => setParams({ student: student._id })} />
     <StudentCardWorkspace key={id} id={id} onSelect={student => setParams(student ? { student: student._id } : {})} />
   </AppLayout>;
 }

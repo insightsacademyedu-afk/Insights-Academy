@@ -52,7 +52,7 @@ export default function TeacherAttendance() {
   return <AppLayout title="Teacher attendance">
     <p className="mb-5 text-sm text-ink-600">Only admin and subadmin can mark and view teacher attendance. One check-in per teacher per day, using Pakistan time.</p>
     <div className="space-y-5">
-      <Panel title="Scan employee card"><AttendanceScanner employee scan={teacherAttendanceApi.scan} onSaved={() => setReload(value => value + 1)} /></Panel>
+      <Panel title="Scan student or teacher card"><AttendanceScanner onSaved={() => setReload(value => value + 1)} /></Panel>
       <Panel title="Mark today's attendance">
         <div className="flex flex-wrap items-end gap-3">
           <Field label="Search teachers"><TextInput value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by name" /></Field>

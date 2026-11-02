@@ -7,6 +7,7 @@ import { studentsApi } from "../api/students";
 
 vi.mock("../components/AppLayout", () => ({ default: ({ children }) => <div>{children}</div> }));
 vi.mock("../api/attendance", () => ({ studentCardsApi: { get: vi.fn(), action: vi.fn() } }));
+vi.mock("../components/StudentCardDirectory", () => ({ default: () => null }));
 vi.mock("../api/students", () => ({ studentsApi: { list: vi.fn(), update: vi.fn() } }));
 vi.mock("qrcode", () => ({ default: { toDataURL: vi.fn().mockResolvedValue("data:image/png;base64,cXI=") } }));
 

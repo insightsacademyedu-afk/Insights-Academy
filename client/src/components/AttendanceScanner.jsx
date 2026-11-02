@@ -4,7 +4,7 @@ import { Field, TextInput } from "./FormFields";
 import { attendanceApi } from "../api/attendance";
 import { attendanceTime, safePhotoUrl } from "../lib/attendance";
 
-export default function AttendanceScanner({ onSaved, scan = attendanceApi.scan, employee = false }) {
+export default function AttendanceScanner({ onSaved, scan = attendanceApi.scan }) {
   const video = useRef(null);
   const [running, setRunning] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -56,7 +56,7 @@ export default function AttendanceScanner({ onSaved, scan = attendanceApi.scan, 
   }, [running]);
 
   return <div className="space-y-4">
-    <p className="text-sm text-ink-600">Scan the current card to mark Present once today. Attendance is confirmed only after the server saves it.</p>
+    <p className="text-sm text-ink-600">Scan a student or teacher card here to mark Present once today. The card type is detected automatically. Attendance is confirmed only after the server saves it.</p>
     <video ref={video} muted playsInline autoPlay aria-label="QR scanner camera" className={running ? "aspect-video w-full max-w-xl rounded-lg bg-black object-cover" : "hidden"} />
     <Button type="button" variant={running ? "ghost" : "primary"} onClick={() => { setError(""); setRunning(value => !value); }}>{running ? "Stop camera" : "Start camera"}</Button>
     <form onSubmit={event => { event.preventDefault(); void submitToken(token); }} className="max-w-xl">
@@ -67,7 +67,7 @@ export default function AttendanceScanner({ onSaved, scan = attendanceApi.scan, 
     {error && <p role="alert" className="rounded-md border border-brick-600/30 bg-brick-100 p-3 text-sm text-brick-600">{error}</p>}
     {result && <div role="status" className="flex flex-wrap items-center gap-4 rounded-lg border border-moss-600/30 bg-moss-100 p-4 text-moss-600">
       {safePhotoUrl((result.teacher || result.student).photoUrl) && <img src={safePhotoUrl((result.teacher || result.student).photoUrl)} alt={(result.teacher || result.student).fullName} className="h-20 w-16 rounded object-cover" />}
-      <div><p className="font-medium">{result.message}</p><p>{(result.teacher || result.student).fullName} · {employee ? result.employeeId : result.student.admissionNumber}</p><p className="text-sm">{employee ? result.record.designation || "Teacher" : `${result.record.className} / ${result.record.sectionName}`} · {attendanceTime(result.record.checkedInAt)} PKT</p></div>
+      <div><p className="font-medium">{result.message}</p><p>{(result.teacher || result.student).fullName} · {result.teacher ? result.employeeId : result.student.admissionNumber}</p><p className="text-sm">{result.teacher ? result.record.designation || "Teacher" : `${result.record.className} / ${result.record.sectionName}`} · {attendanceTime(result.record.checkedInAt)} PKT</p></div>
     </div>}
   </div>;
 }

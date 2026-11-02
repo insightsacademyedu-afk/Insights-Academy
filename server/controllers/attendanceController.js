@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { scanTeacherCard } from "./teacherScanController.js";
 import Student from "../models/Student.js";
 import StudentCard from "../models/StudentCard.js";
 import StudentClassAssignment from "../models/StudentClassAssignment.js";
@@ -12,6 +13,7 @@ import { absentStudents } from "../services/absentStudents.js";
 export async function scan(req, res, next) {
   try {
     const token = req.body?.token;
+    if (typeof token === "string" && token.startsWith("AMT1_")) return scanTeacherCard(req, res, next);
     if (typeof token !== "string" || !/^AMS1_[A-Za-z0-9_-]{43}$/.test(token)) throw cardError("QR code not recognized", 400);
     const identity = await StudentCard.findOne({ token }).select("student");
     if (!identity) throw cardError("QR code not recognized", 404);

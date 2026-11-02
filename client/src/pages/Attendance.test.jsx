@@ -15,14 +15,14 @@ it("teachers can read student attendance without a scan action", async () => {
   auth.user.role = "staff";
   render(<Attendance />);
   expect(await screen.findByText(/No check-ins found/)).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Scan student card" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Scan student or teacher card" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Mark class attendance" })).not.toBeInTheDocument();
 });
 
 it("subadmin can scan student cards", async () => {
   auth.user.role = "subadmin";
   render(<Attendance />);
-  expect(screen.getByRole("button", { name: "Scan student card" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Scan student or teacher card" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Mark class attendance" })).toBeInTheDocument();
   expect(await screen.findByText(/No check-ins found/)).toBeInTheDocument();
 });
