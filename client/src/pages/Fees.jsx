@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Layers, Eye, X, Printer } from "lucide-react";
 import AppLayout from "../components/AppLayout";
 import DataTable from "../components/DataTable";
@@ -37,9 +37,6 @@ const invoiceTypeLabel = (type) => type?.replace(/_/g, " ");
 export default function Fees() {
   const { user } = useAuth();
   const restricted = user?.role === "subadmin";
-  const resource = useMemo(() => restricted ? {
-    list: params => params.student ? feesApi.listInvoices(params) : Promise.resolve({ items: [], page: 1, totalPages: 1, total: 0 }),
-  } : invoicesResource, [restricted]);
   const [sessions, setSessions] = useState([]);
   const [sessionFilter, setSessionFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -57,11 +54,11 @@ export default function Fees() {
       .catch(() => {});
   }, []);
 
-  const list = useResourceList(resource, {
+  const list = useResourceList(invoicesResource, {
     academicSession: sessionFilter,
     status: statusFilter,
     invoiceType: typeFilter,
-    student: studentFilter?._id || "",
+    student: studentFilter?._id,
   });
 
   const [newInvoiceOpen, setNewInvoiceOpen] = useState(false);
@@ -130,8 +127,7 @@ export default function Fees() {
   ];
 
   return (
-    <AppLayout title={restricted ? "Student invoices" : "Fees"}>
-      {restricted && <p className="mb-4 text-sm text-ink-600">Select a student to view invoices and record payments.</p>}
+    <AppLayout title="Fees">
       <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
         <StudentSelector value={studentFilter} onChange={setStudentFilter} />
 
@@ -195,9 +191,9 @@ export default function Fees() {
 
       <DataTable
         columns={columns}
-        rows={restricted ? list.items.filter(row => String(row.student?._id || row.student) === studentFilter?._id) : list.items}
+        rows={list.items}
         loading={list.loading}
-        emptyMessage={restricted ? (studentFilter ? "No invoices for this student." : "Select a student to view invoices.") : "No invoices yet — generate one for a student, or use bulk generate for a whole class/section."}
+        emptyMessage="No invoices match these filters."
       />
       <Pagination page={list.page} totalPages={list.totalPages} total={list.total} onChange={list.setPage} />
 

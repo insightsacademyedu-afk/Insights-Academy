@@ -57,17 +57,23 @@ export default function AttendanceScanner({ onSaved, scan = attendanceApi.scan }
 
   return <div className="space-y-4">
     <p className="text-sm text-ink-600">Scan a student or teacher card here to mark Present once today. The card type is detected automatically. Attendance is confirmed only after the server saves it.</p>
-    <video ref={video} muted playsInline autoPlay aria-label="QR scanner camera" className={running ? "aspect-video w-full max-w-xl rounded-lg bg-black object-cover" : "hidden"} />
-    <Button type="button" variant={running ? "ghost" : "primary"} onClick={() => { setError(""); setRunning(value => !value); }}>{running ? "Stop camera" : "Start camera"}</Button>
-    <form onSubmit={event => { event.preventDefault(); void submitToken(token); }} className="max-w-xl">
-      <Field label="USB scanner or QR token"><TextInput value={token} onChange={event => setToken(event.target.value)} maxLength={200} autoComplete="off" placeholder="Scan into this field or paste the card QR token" /></Field>
-      <Button disabled={busy || !token.trim()}>{busy ? "Saving attendance…" : "Mark attendance"}</Button>
-    </form>
-    {busy && <p role="status" className="text-sm text-ink-500">Checking card and saving attendance…</p>}
-    {error && <p role="alert" className="rounded-md border border-brick-600/30 bg-brick-100 p-3 text-sm text-brick-600">{error}</p>}
-    {result && <div role="status" className="flex flex-wrap items-center gap-4 rounded-lg border border-moss-600/30 bg-moss-100 p-4 text-moss-600">
-      {safePhotoUrl((result.teacher || result.student).photoUrl) && <img src={safePhotoUrl((result.teacher || result.student).photoUrl)} alt={(result.teacher || result.student).fullName} className="h-20 w-16 rounded object-cover" />}
-      <div><p className="font-medium">{result.message}</p><p>{(result.teacher || result.student).fullName} · {result.teacher ? result.employeeId : result.student.admissionNumber}</p><p className="text-sm">{result.teacher ? result.record.designation || "Teacher" : `${result.record.className} / ${result.record.sectionName}`} · {attendanceTime(result.record.checkedInAt)} PKT</p></div>
-    </div>}
+    <div className="grid items-start gap-4 lg:grid-cols-[min(50%,36rem)_minmax(0,1fr)] lg:gap-6">
+      <div className="min-w-0 max-w-xl space-y-4">
+        <video ref={video} muted playsInline autoPlay aria-label="QR scanner camera" className={running ? "aspect-video w-full rounded-lg bg-black object-cover" : "hidden"} />
+        <Button type="button" variant={running ? "ghost" : "primary"} onClick={() => { setError(""); setRunning(value => !value); }}>{running ? "Stop camera" : "Start camera"}</Button>
+        <form onSubmit={event => { event.preventDefault(); void submitToken(token); }}>
+          <Field label="USB scanner or QR token"><TextInput value={token} onChange={event => setToken(event.target.value)} maxLength={200} autoComplete="off" placeholder="Scan into this field or paste the card QR token" /></Field>
+          <Button disabled={busy || !token.trim()}>{busy ? "Saving attendance…" : "Mark attendance"}</Button>
+        </form>
+      </div>
+      {(busy || error || result) && <div className="min-w-0 space-y-3">
+        {busy && <p role="status" className="text-sm text-ink-500">Checking card and saving attendance…</p>}
+        {error && <p role="alert" className="rounded-md border border-brick-600/30 bg-brick-100 p-3 text-sm text-brick-600">{error}</p>}
+        {result && <div role="status" className="flex flex-wrap items-center gap-4 rounded-lg border border-moss-600/30 bg-moss-100 p-4 text-moss-600">
+          {safePhotoUrl((result.teacher || result.student).photoUrl) && <img src={safePhotoUrl((result.teacher || result.student).photoUrl)} alt={(result.teacher || result.student).fullName} className="h-20 w-16 rounded object-cover" />}
+          <div><p className="font-medium">{result.message}</p><p>{(result.teacher || result.student).fullName} · {result.teacher ? result.employeeId : result.student.admissionNumber}</p><p className="text-sm">{result.teacher ? result.record.designation || "Teacher" : `${result.record.className} / ${result.record.sectionName}`} · {attendanceTime(result.record.checkedInAt)} PKT</p></div>
+        </div>}
+      </div>}
+    </div>
   </div>;
 }

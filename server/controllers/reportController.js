@@ -89,8 +89,11 @@ export async function feeCollectionReport(req, res, next) {
       return sendCsv(res, "fee-collection-report.csv", csv);
     }
 
-    const total = payments.reduce((sum, p) => sumMoney(sum, p.amount), 0);
-    res.json({ items: payments, total, count: payments.length });
+    const report = { items: payments, count: payments.length };
+    if (req.user.role === "admin" || req.query.student) {
+      report.total = payments.reduce((sum, p) => sumMoney(sum, p.amount), 0);
+    }
+    res.json(report);
   } catch (err) {
     next(err);
   }
@@ -117,8 +120,11 @@ export async function outstandingFeesReport(req, res, next) {
       return sendCsv(res, "outstanding-fees-report.csv", csv);
     }
 
-    const totalOutstanding = invoices.reduce((sum, i) => sumMoney(sum, i.totalAmount, -i.amountPaid), 0);
-    res.json({ items: invoices, totalOutstanding, count: invoices.length });
+    const report = { items: invoices, count: invoices.length };
+    if (req.user.role === "admin" || req.query.student) {
+      report.totalOutstanding = invoices.reduce((sum, i) => sumMoney(sum, i.totalAmount, -i.amountPaid), 0);
+    }
+    res.json(report);
   } catch (err) {
     next(err);
   }

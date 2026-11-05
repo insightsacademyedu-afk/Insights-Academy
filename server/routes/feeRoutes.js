@@ -12,7 +12,6 @@ import {
 
 const router = Router();
 
-// Sub-admin reads are restricted to a single student by requireAuth.
 router.use(requireAuth, requireRole("admin", "subadmin"));
 
 router.get("/invoices", listInvoices);

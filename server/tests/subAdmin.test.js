@@ -105,7 +105,7 @@ test("sub-admin can create tests, enter marks, finalize and view academic report
   expect((await sub.agent.get(`/api/dashboard/tests/${id}/grade-distribution`)).body.totalStudents).toBe(1);
 });
 
-test("invoice lists and fee reports are scoped to one student, including CSV exports", async () => {
+test("sub-admin can browse all fee records but needs a student for monetary totals and CSV exports", async () => {
   const sub = await subSession();
   const chain = await createAcademicChain();
   const first = (await createEnrolledStudent(chain, { fullName: "Selected Student" })).student;
@@ -118,8 +118,14 @@ test("invoice lists and fee reports are scoped to one student, including CSV exp
     await FeePayment.create({ invoice: invoice._id, student: student._id, amount: 1000, method: "cash", receiptNumber: String(student._id), receivedBy: sub.user._id });
   }
   for (const endpoint of ["/api/fees/invoices", "/api/reports/fee-collection", "/api/reports/outstanding-fees"]) {
-    expect((await sub.agent.get(endpoint)).status).toBe(403);
-    expect((await sub.agent.get(`${endpoint}?format=csv`)).status).toBe(403);
+    const all = await sub.agent.get(endpoint);
+    expect(all.status).toBe(200);
+    expect(all.body.items).toHaveLength(2);
+    if (endpoint.includes("reports")) {
+      expect(all.body).not.toHaveProperty("total");
+      expect(all.body).not.toHaveProperty("totalOutstanding");
+      expect((await sub.agent.get(`${endpoint}?format=csv`)).status).toBe(403);
+    }
     expect((await sub.agent.get(`${endpoint}?student=all`)).status).toBe(403);
     const response = await sub.agent.get(`${endpoint}?student=${first._id}`);
     expect(response.status).toBe(200);

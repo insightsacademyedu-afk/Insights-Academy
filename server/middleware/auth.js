@@ -56,7 +56,7 @@ export async function requireAuth(req, res, next) {
     }
 
     if (user.role === "subadmin" && !canAccessAsSubAdmin(req)) {
-      return res.status(403).json({ message: "Sub-admin access is limited to students, tests and individual student invoices and reports. Select one student for fee records." });
+      return res.status(403).json({ message: "This action is unavailable to sub-admins. For fee CSV exports, select a student first." });
     }
 
     req.user = user; // full mongoose doc, downstream middleware/controllers can use it

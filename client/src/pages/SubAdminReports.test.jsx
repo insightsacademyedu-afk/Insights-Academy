@@ -24,11 +24,12 @@ beforeEach(() => {
   downloadReportCsv.mockResolvedValue();
 });
 
-test("sub-admin fee reports and CSV exports require a selected student", async () => {
+test("sub-admin fee reports show all records and require a student for totals and CSV exports", async () => {
   const user = userEvent.setup();
   render(<MemoryRouter><Reports /></MemoryRouter>);
   await user.click(screen.getByRole("button", { name: "Fee Collection" }));
-  expect(fetchFeeCollectionReport).not.toHaveBeenCalled();
+  await waitFor(() => expect(fetchFeeCollectionReport).toHaveBeenCalledWith({ from: "", to: "" }));
+  expect(screen.queryByText("Total collected")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Download CSV/ })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Expenses" })).not.toBeInTheDocument();
   await user.type(screen.getByLabelText("Search students"), "Selected");
@@ -41,7 +42,9 @@ test("sub-admin fee reports and CSV exports require a selected student", async (
   await user.click(await screen.findByRole("button", { name: /Download CSV/ }));
   expect(downloadReportCsv).toHaveBeenCalledWith("/reports/outstanding-fees", { student: "student1" }, "outstanding-fees-report.csv");
   await user.click(screen.getByLabelText("Clear student filter"));
+  await waitFor(() => expect(fetchOutstandingFeesReport).toHaveBeenCalledWith({}));
   expect(screen.queryByText("Student outstanding")).not.toBeInTheDocument();
+  expect(screen.queryByText("Total outstanding")).not.toBeInTheDocument();
   expect(fetchExpensesReport).not.toHaveBeenCalled();
 });
 

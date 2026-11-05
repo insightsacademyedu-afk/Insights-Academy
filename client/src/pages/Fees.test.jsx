@@ -115,7 +115,7 @@ beforeEach(() => {
 });
 
 describe("Fees list", () => {
-  it("requires selecting a student for sub-admin invoice reads and offers invoice generation and payment recording", async () => {
+  it("lists invoices for sub-admins and offers student filtering and payment recording", async () => {
     mockUseAuth.mockReturnValue({ user: { role: "subadmin" }, isAdmin: false });
     const student = { _id: "student1", fullName: "Amina Khan", admissionNumber: "A-001" };
     studentsApi.list.mockResolvedValue({ items: [student] });
@@ -123,8 +123,8 @@ describe("Fees list", () => {
     feesApi.getInvoice.mockResolvedValue({ invoice: { ...UNPAID_INVOICE, student }, payments: [] });
     const user = userEvent.setup();
     renderFees();
-    await screen.findByText("Select a student to view invoices.");
-    expect(feesApi.listInvoices).not.toHaveBeenCalled();
+    await screen.findByText("Amina Khan");
+    expect(feesApi.listInvoices.mock.calls[0][0]).not.toHaveProperty("student");
     expect(screen.queryByRole("button", { name: "New invoice" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Bulk generate" })).toBeInTheDocument();
     await user.type(screen.getByLabelText("Search students"), "Amina");

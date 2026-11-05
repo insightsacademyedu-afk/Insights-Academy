@@ -19,7 +19,6 @@ import { useFetch } from "../lib/useFetch";
 import { useToast } from "../context/ToastContext";
 import { formatCurrency, formatNumber, formatDate } from "../lib/format";
 
-// Sub-admin financial reports require one student on the client and server.
 // Reports do not paginate — see api/reports.js
 // for why this page uses plain `useFetch` per tab instead of
 // `useResourceList`. Each tab owns its own filter state and re-fetches on
@@ -54,13 +53,13 @@ export default function Reports() {
       </div>
 
       {restricted && ["fee-collection", "outstanding-fees"].includes(tab) && <div className="mb-5 space-y-2">
-        <p className="text-sm text-ink-600">Select a student to view their fee report.</p>
+        <p className="text-sm text-ink-600">Filter by student to see their totals or download a CSV.</p>
         <StudentSelector value={student} onChange={setStudent} />
       </div>}
       {tab === "tests" && <Link to="/tests" className="text-sm text-brass-600 underline">Open test reports and results</Link>}
       {tab === "students" && <StudentsReportTab />}
-      {tab === "fee-collection" && (!restricted || student) && <FeeCollectionReportTab key={student?._id || "all"} student={restricted ? student?._id : undefined} />}
-      {tab === "outstanding-fees" && (!restricted || student) && <OutstandingFeesReportTab key={student?._id || "all"} student={restricted ? student?._id : undefined} />}
+      {tab === "fee-collection" && <FeeCollectionReportTab key={student?._id || "all"} student={student?._id} showTotals={!restricted || !!student} />}
+      {tab === "outstanding-fees" && <OutstandingFeesReportTab key={student?._id || "all"} student={student?._id} showTotals={!restricted || !!student} />}
       {!restricted && tab === "expenses" && <ExpensesReportTab />}
     </AppLayout>
   );
@@ -200,7 +199,7 @@ function StudentsReportTab() {
 // Fee collection report
 // ─────────────────────────────────────────────────────────────────────────
 
-function FeeCollectionReportTab({ student }) {
+function FeeCollectionReportTab({ student, showTotals }) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
@@ -236,16 +235,16 @@ function FeeCollectionReportTab({ student }) {
 
         <div className="flex-1" />
 
-        <DownloadButton
+        {showTotals && <DownloadButton
           disabled={loading}
           onDownload={() =>
             downloadReportCsv("/reports/fee-collection", { from, to, ...(student ? { student } : {}) }, "fee-collection-report.csv")
           }
-        />
+        />}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
-        <StatCard label={student ? "Student payments" : "Total collected"} value={formatCurrency(data?.total || 0)} tone="moss" />
+        {showTotals && <StatCard label={student ? "Student payments" : "Total collected"} value={formatCurrency(data?.total || 0)} tone="moss" />}
         <StatCard label="Payments" value={formatNumber(data?.count || 0)} />
       </div>
 
@@ -262,13 +261,10 @@ function FeeCollectionReportTab({ student }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Outstanding fees report — backend accepts no filters at all (see
-// `reportController.js#outstandingFeesReport`: it reads only `format`
-// from `req.query`), so this tab has a download button and a table, no
-// filter bar.
+// Outstanding fees report
 // ─────────────────────────────────────────────────────────────────────────
 
-function OutstandingFeesReportTab({ student }) {
+function OutstandingFeesReportTab({ student, showTotals }) {
   const { data, loading, error } = useFetch(() => fetchOutstandingFeesReport(student ? { student } : {}), [student]);
 
   const columns = [
@@ -307,15 +303,15 @@ function OutstandingFeesReportTab({ student }) {
 
   return (
     <>
-      <div className="flex items-center justify-end mb-4">
+      {showTotals && <div className="flex items-center justify-end mb-4">
         <DownloadButton
           disabled={loading}
           onDownload={() => downloadReportCsv("/reports/outstanding-fees", student ? { student } : {}, "outstanding-fees-report.csv")}
         />
-      </div>
+      </div>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
-        <StatCard label={student ? "Student outstanding" : "Total outstanding"} value={formatCurrency(data?.totalOutstanding || 0)} tone="brick" />
+        {showTotals && <StatCard label={student ? "Student outstanding" : "Total outstanding"} value={formatCurrency(data?.totalOutstanding || 0)} tone="brick" />}
         <StatCard label="Invoices" value={formatNumber(data?.count || 0)} />
       </div>
 

@@ -27,12 +27,13 @@ export function canAccessAsSubAdmin(req) {
   if (baseUrl === "/api/fees") {
     if (method === "POST") return matches(path, "/(?:invoices(?:/bulk-generate)?|payments)");
     if (!read) return false;
-    if (matches(path, "/invoices")) return /^[a-f\d]{24}$/i.test(req.query.student || "");
+    if (matches(path, "/invoices")) return req.query.student === undefined || /^[a-f\d]{24}$/i.test(req.query.student);
     return matches(path, `/invoices/${id}`) || matches(path, `/students/${id}/summary`);
   }
   if (baseUrl === "/api/reports" && read) {
     if (matches(path, "/students")) return true;
-    return matches(path, "/(?:fee-collection|outstanding-fees)") && /^[a-f\d]{24}$/i.test(req.query.student || "");
+    return matches(path, "/(?:fee-collection|outstanding-fees)") &&
+      (req.query.student === undefined ? req.query.format !== "csv" : /^[a-f\d]{24}$/i.test(req.query.student));
   }
   return false;
 }
