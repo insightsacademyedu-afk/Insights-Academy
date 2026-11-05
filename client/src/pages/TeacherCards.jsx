@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";
-import AppLayout from "../components/AppLayout";
 import IdentityCard from "../components/IdentityCard";
 import StudentPhotoInput from "../components/StudentPhotoInput";
 import Panel from "../components/Panel";
@@ -24,15 +23,20 @@ export default function TeacherCards() {
     const timer = setTimeout(() => teacherAttendanceApi.teachers({ search, limit: 100 }).then(result => { if (active) { setTeachers(result.items); setError(""); } }).catch(err => { if (active) setError(err.message); }), 200);
     return () => { active = false; clearTimeout(timer); };
   }, [search]);
-  return <AppLayout title="Teacher employee cards">
+  return <>
     <p className="mb-5 text-sm text-ink-600">Employee cards are valid for one year. Edit the name, designation and photo without changing the employee ID or QR.</p>
     <div className="flex flex-wrap gap-3">
       <Field label="Search teachers"><TextInput value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by name" /></Field>
-      <Field label="Teacher"><Select value={id} onChange={event => setParams(event.target.value ? { teacher: event.target.value } : {})}><option value="">Select a teacher</option>{id && !teachers.some(item => item._id === id) && <option value={id}>Selected teacher</option>}{teachers.map(item => <option key={item._id} value={item._id}>{item.fullName}</option>)}</Select></Field>
+      <Field label="Teacher"><Select value={id} onChange={event => {
+        const next = new URLSearchParams(params);
+        if (event.target.value) next.set("teacher", event.target.value);
+        else next.delete("teacher");
+        setParams(next);
+      }}><option value="">Select a teacher</option>{id && !teachers.some(item => item._id === id) && <option value={id}>Selected teacher</option>}{teachers.map(item => <option key={item._id} value={item._id}>{item.fullName}</option>)}</Select></Field>
     </div>
     {error && <p role="alert" className="mb-4 text-sm text-brick-600">{error}</p>}
     {id ? <Workspace key={id} id={id} /> : <p className="text-sm text-ink-500">Select a teacher to issue or edit their employee card.</p>}
-  </AppLayout>;
+  </>;
 }
 
 function Workspace({ id }) {
@@ -75,7 +79,7 @@ function Workspace({ id }) {
     {teacher && <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
       <div>
         {card ? <IdentityCard employee person={teacher} employeeId={employeeId} card={card} settings={settings} qr={qr} /> : <Panel title="No card issued"><p className="text-sm text-ink-600">Issue an employee card for this teacher.</p></Panel>}
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mx-auto mt-4 grid w-full max-w-[340px] grid-cols-3 gap-2 [&>button]:px-2! [&>button]:text-xs!">
           <Button variant="ghost" disabled={busy || !valid || !qr} onClick={() => exportCard(false)}>Download card</Button>
           <Button variant="ghost" disabled={busy || !valid || !qr} onClick={() => exportCard(true)}>Print card / PDF</Button>
           <Button variant="ghost" disabled={busy} onClick={() => setEditing({ fullName: teacher.fullName, cardDesignation: teacher.cardDesignation || teacher.designation?.title || "Teacher", photoUrl: teacher.photoUrl || "" })}>Edit card details</Button>
@@ -84,7 +88,7 @@ function Workspace({ id }) {
       <div className="space-y-5">
         <Panel title="Card management">
           <p className="mb-4 text-sm text-ink-600">Only admin and subadmin can manage cards and mark teacher attendance. Replacing a card invalidates its old QR.</p>
-          <div className="flex flex-wrap gap-2">
+          <div className={card?.status === "active" ? "grid grid-cols-3 gap-2 [&>button]:px-2! [&>button]:text-xs!" : "flex gap-2"}>
             {!card && <Button disabled={busy || teacher.status !== "active"} onClick={() => setAction("issue")}>Issue card</Button>}
             {card?.status === "active" && <><Button disabled={busy || teacher.status !== "active"} onClick={() => setAction("renew")}>Renew for 1 year</Button><Button variant="danger" disabled={busy} onClick={() => setAction("revoke")}>Revoke card</Button></>}
             {card && <Button variant="ghost" disabled={busy || teacher.status !== "active"} onClick={() => setAction("replace")}>Replace card</Button>}

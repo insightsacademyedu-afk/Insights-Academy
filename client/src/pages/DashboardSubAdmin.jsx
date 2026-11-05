@@ -9,7 +9,7 @@ export default function DashboardSubAdmin() {
       {[
         { to: "/students", title: "Students", text: "Register students and manage enrollment", icon: GraduationCap },
         { to: "/tests", title: "Tests & results", text: "Create tests, enter marks and view results", icon: ClipboardList },
-        { to: "/fees", title: "Student invoices", text: "View one student's invoices and payment history", icon: Wallet },
+        { to: "/fees", title: "Fees", text: "Generate invoices and record student payments", icon: Wallet },
         { to: "/reports", title: "Reports", text: "Student, test and individual fee reports", icon: FileBarChart },
       ].map(({ to, title, text, icon: Icon }) => <Link key={to} to={to} className="depth-card rounded-lg border border-ink-200 bg-paper-50 p-5 hover:border-brass-500 focus-visible:outline-2 focus-visible:outline-brass-500">
         <Icon size={22} className="mb-4 text-brass-600" />

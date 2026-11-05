@@ -31,6 +31,7 @@ export async function adminSummary(req, res, next) {
             _id: null,
             totalBilled: { $sum: "$totalAmount" },
             totalCollected: { $sum: "$amountPaid" },
+            testSessionCollected: { $sum: { $cond: [{ $eq: ["$invoiceType", "test_session"] }, "$amountPaid", 0] } },
             invoiceCount: { $sum: 1 },
             // Excludes "waived" invoices, same as outstandingFeesReport's
             // own filter (Session 3 fix) — a waived invoice is
@@ -62,10 +63,11 @@ export async function adminSummary(req, res, next) {
         ? {
             totalBilled: sumMoney(feeAgg[0].totalBilled),
             totalCollected: sumMoney(feeAgg[0].totalCollected),
+            testSessionCollected: sumMoney(feeAgg[0].testSessionCollected),
             outstanding: sumMoney(feeAgg[0].outstanding),
             invoiceCount: feeAgg[0].invoiceCount,
           }
-        : { totalBilled: 0, totalCollected: 0, outstanding: 0, invoiceCount: 0 },
+        : { totalBilled: 0, totalCollected: 0, testSessionCollected: 0, outstanding: 0, invoiceCount: 0 },
       expenses: expenseAgg[0] ? { ...expenseAgg[0], totalExpenses: sumMoney(expenseAgg[0].totalExpenses) } : { totalExpenses: 0, count: 0 },
       salaries: shapeStatusCounts(salaryAgg.map(row => ({ ...row, total: sumMoney(row.total) })), "total"),
     });

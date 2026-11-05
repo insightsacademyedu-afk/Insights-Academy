@@ -137,10 +137,49 @@ test("invoice lists and fee reports are scoped to one student, including CSV exp
   }
   expect((await sub.agent.get(`/api/fees/invoices/${invoices[0]._id}`)).status).toBe(200);
   expect((await sub.agent.get(`/api/fees/students/${first._id}/summary`)).status).toBe(200);
-  for (const [method, endpoint] of [["post", "/api/fees/payments"], ["post", "/api/fees/invoices"],
-    ["post", "/api/fees/invoices/bulk-generate"], ["patch", `/api/fees/invoices/${invoices[0]._id}/waive`]]) {
-    expect((await withCsrf(sub.agent[method](endpoint).send({}), sub.csrfToken)).status).toBe(403);
-  }
+  expect((await withCsrf(sub.agent.patch(`/api/fees/invoices/${invoices[0]._id}/waive`).send({}), sub.csrfToken)).status).toBe(403);
+});
+
+test("sub-admin can bill the new fee types and record attributed payments", async () => {
+  const sub = await subSession();
+  const admin = await createAdminSession(app);
+  const chain = await createAcademicChain();
+  const { student } = await createEnrolledStudent(chain, {
+    feeDetails: { testSessionFee: 800, stationeryFee: 350 },
+  });
+  const billing = { academicSession: chain.session._id, period: "2026-11", dueDate: "2026-11-30" };
+  const invoice = await withCsrf(sub.agent.post("/api/fees/invoices").send({
+    ...billing, student: student._id, invoiceType: "test_session",
+  }), sub.csrfToken);
+  expect(invoice.status).toBe(201);
+  expect(invoice.body.totalAmount).toBe(800);
+
+  const bulk = await withCsrf(sub.agent.post("/api/fees/invoices/bulk-generate").send({
+    ...billing, class: chain.klass._id, section: chain.section._id, invoiceType: "stationery",
+  }), sub.csrfToken);
+  expect(bulk.status).toBe(201);
+  expect(bulk.body.created).toEqual([expect.objectContaining({ totalAmount: 350 })]);
+
+  const postPayment = (body) => withCsrf(sub.agent.post("/api/fees/payments").send({
+    invoice: invoice.body._id, ...body,
+  }), sub.csrfToken);
+  const paid = await postPayment({ amount: 250, method: "cash", receivedBy: admin.user._id });
+  expect(paid.status).toBe(201);
+  expect(paid.body.payment.receivedBy).toBe(String(sub.user._id));
+  expect(paid.body.invoice.status).toBe("partially_paid");
+
+  const stationeryPayment = await withCsrf(sub.agent.post("/api/fees/payments").send({
+    invoice: bulk.body.created[0]._id, amount: 350, method: "cash",
+  }), sub.csrfToken);
+  expect(stationeryPayment.body.invoice.status).toBe("paid");
+  expect((await postPayment({ amount: -50, method: "adjustment" })).status).toBe(403);
+
+  const detail = await admin.agent.get("/api/fees/invoices/" + invoice.body._id);
+  expect(detail.body.payments[0].receivedByName).toBe(sub.user.displayName || sub.user.username);
+  expect(detail.body.payments[0].receivedBy.username).toBe(sub.user.username);
+
+  const dashboard = await admin.agent.get("/api/dashboard/admin-summary");
+  expect(dashboard.body.fees).toMatchObject({ totalCollected: 600, testSessionCollected: 250 });
 });
 
 test("financial totals and administration remain forbidden even through direct API requests", async () => {

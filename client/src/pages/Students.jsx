@@ -23,7 +23,7 @@ import { formatCurrency, formatDate, toDateInputValue } from "../lib/format";
 // hard-coded two-option status filter — the toolbar below is built by
 // hand, same as the teacher-assignments tab on the Staff page.
 const STUDENT_STATUSES = ["active", "inactive", "transferred", "graduated", "expelled"];
-const FEE_DETAIL_FIELDS = ["monthlyTuition", "admissionFee", "examFee", "otherFee", "discount", "scholarship"];
+const FEE_DETAIL_FIELDS = ["monthlyTuition", "admissionFee", "testSessionFee", "stationeryFee", "examFee", "otherFee", "discount", "scholarship"];
 
 function emptyStudentForm() {
   return {
@@ -41,6 +41,8 @@ function emptyStudentForm() {
     feeDetails: {
       monthlyTuition: "",
       admissionFee: "",
+      testSessionFee: "",
+      stationeryFee: "",
       examFee: "",
       otherFee: "",
       discount: "",
@@ -641,6 +643,20 @@ function StudentFormModal({ open, onClose, editing, sessions, onSaved }) {
               }
             />
           </Field>
+          {[
+            ["testSessionFee", "Test session fee"],
+            ["stationeryFee", "Stationery fee"],
+          ].map(([key, label]) => (
+            <Field key={key} label={label}>
+              <TextInput
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.feeDetails[key]}
+                onChange={(e) => setForm({ ...form, feeDetails: { ...form.feeDetails, [key]: e.target.value } })}
+              />
+            </Field>
+          ))}
           <Field label="Exam fee">
             <TextInput
               type="number"
@@ -973,6 +989,8 @@ function StudentDetailModal({ student, canManageStudents, canArchive, canManageP
             <DetailSection title="Fee structure">
               <DetailRow label="Monthly tuition" value={formatCurrency(s.feeDetails.monthlyTuition)} />
               <DetailRow label="Admission fee" value={formatCurrency(s.feeDetails.admissionFee)} />
+              <DetailRow label="Test session fee" value={formatCurrency(s.feeDetails.testSessionFee)} />
+              <DetailRow label="Stationery fee" value={formatCurrency(s.feeDetails.stationeryFee)} />
               <DetailRow label="Exam fee" value={formatCurrency(s.feeDetails.examFee)} />
               <DetailRow label="Other fee" value={formatCurrency(s.feeDetails.otherFee)} />
               <DetailRow label="Discount" value={formatCurrency(s.feeDetails.discount)} />

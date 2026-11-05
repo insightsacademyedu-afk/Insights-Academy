@@ -25,7 +25,7 @@ const recordColumns = {
   ],
   invoices: [
     { key: "period", header: "Period" },
-    { key: "invoiceType", header: "Fee type" },
+    { key: "invoiceType", header: "Fee type", render: (row) => row.invoiceType?.replace(/_/g, " ") },
     { key: "totalAmount", header: "Total", render: row => formatCurrency(row.totalAmount) },
     { key: "amountPaid", header: "Paid", render: row => formatCurrency(row.amountPaid) },
     { key: "dueDate", header: "Due date", render: row => formatDate(row.dueDate) },

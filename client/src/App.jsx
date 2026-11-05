@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { AcademyProvider } from "./context/AcademyContext";
@@ -20,7 +20,6 @@ const Students = lazy(() => import("./pages/Students"));
 const StudentCards = lazy(() => import("./pages/StudentCards"));
 const Attendance = lazy(() => import("./pages/Attendance"));
 const TeacherAttendance = lazy(() => import("./pages/TeacherAttendance"));
-const TeacherCards = lazy(() => import("./pages/TeacherCards"));
 const Fees = lazy(() => import("./pages/Fees"));
 const Tests = lazy(() => import("./pages/Tests"));
 const Salaries = lazy(() => import("./pages/Salaries"));
@@ -42,7 +41,6 @@ const LIVE_PAGES = {
   "/student-cards": StudentCards,
   "/attendance": Attendance,
   "/teacher-attendance": TeacherAttendance,
-  "/teacher-cards": TeacherCards,
   "/fees": Fees,
   "/tests": Tests,
   "/salaries": Salaries,
@@ -58,6 +56,13 @@ const upcomingRoutes = NAV_SECTIONS.flatMap((s) => s.items).filter(
 const liveRoutes = NAV_SECTIONS.flatMap((s) => s.items).filter(
   (item) => item.phase <= CURRENT_PHASE && LIVE_PAGES[item.to]
 );
+
+function TeacherCardsRedirect() {
+  const [params] = useSearchParams();
+  const destination = new URLSearchParams(params);
+  destination.set("tab", "cards");
+  return <Navigate to={{ pathname: "/teacher-attendance", search: destination.toString() }} replace />;
+}
 
 export default function App() {
   return (
@@ -99,6 +104,7 @@ export default function App() {
                 }
               />
             ))}
+            <Route path="/teacher-cards" element={<TeacherCardsRedirect />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes></Suspense>
         </ToastProvider></AcademyProvider>

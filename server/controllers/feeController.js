@@ -7,11 +7,17 @@ import StudentClassAssignment from "../models/StudentClassAssignment.js";
 import { buildListQuery, paginatedResponse } from "../utils/listQuery.js";
 import { nextReceiptNumber } from "../utils/counters.js";
 
-const INVOICE_TYPES = ["tuition", "admission", "exam", "other"];
-const TYPE_AMOUNT_FIELDS = { admission: "admissionFee", exam: "examFee", other: "otherFee" };
+const TYPE_AMOUNT_FIELDS = {
+  admission: "admissionFee",
+  test_session: "testSessionFee",
+  stationery: "stationeryFee",
+  exam: "examFee",
+  other: "otherFee",
+};
+const INVOICE_TYPES = ["tuition", ...Object.keys(TYPE_AMOUNT_FIELDS)];
 
 function invoiceFieldsFor(student, type, amountOverride) {
-  const fields = { monthlyTuition: 0, admissionFee: 0, examFee: 0, otherFee: 0, discount: 0, scholarship: 0 };
+  const fields = { monthlyTuition: 0, admissionFee: 0, testSessionFee: 0, stationeryFee: 0, examFee: 0, otherFee: 0, discount: 0, scholarship: 0 };
   if (type === "tuition") {
     fields.monthlyTuition = amountOverride ?? student.feeDetails.monthlyTuition;
     fields.discount = student.feeDetails.discount;
@@ -22,10 +28,6 @@ function invoiceFieldsFor(student, type, amountOverride) {
   }
   return fields;
 }
-
-// Fees is an admin-only module end to end (per spec, financial data is
-// explicitly excluded from what teachers can see — see shapeForRole in
-// studentController.js) so there is no teacher-scoping logic here at all.
 
 export async function listInvoices(req, res, next) {
   try {
@@ -49,7 +51,7 @@ export async function getInvoice(req, res, next) {
     const invoice = await FeeInvoice.findById(req.params.id).populate("student", "fullName admissionNumber");
     if (!invoice) return res.status(404).json({ message: "Not found" });
 
-    const payments = await FeePayment.find({ invoice: invoice._id }).sort({ paidAt: -1 });
+    const payments = await FeePayment.find({ invoice: invoice._id }).populate("receivedBy", "displayName username").sort({ paidAt: -1 });
     res.json({ invoice, payments });
   } catch (err) {
     next(err);
@@ -73,20 +75,24 @@ export async function createInvoice(req, res, next) {
     const type = invoiceType || "tuition";
     if (!INVOICE_TYPES.includes(type)) return res.status(400).json({ message: "Invalid invoice type" });
     const defaults = invoiceFieldsFor(student, type);
-    const fields = {
-      monthlyTuition: overrides.monthlyTuition ?? defaults.monthlyTuition,
-      admissionFee: overrides.admissionFee ?? defaults.admissionFee,
-      examFee: overrides.examFee ?? defaults.examFee,
-      otherFee: overrides.otherFee ?? defaults.otherFee,
-      discount: overrides.discount ?? defaults.discount,
-      scholarship: overrides.scholarship ?? defaults.scholarship,
-    };
+    // Dedicated fee invoices keep collections attributable even when paid in installments.
+    const dedicatedFee = ["test_session", "stationery"].includes(type);
+    const fields = dedicatedFee
+      ? invoiceFieldsFor(student, type, overrides[TYPE_AMOUNT_FIELDS[type]])
+      : {
+          monthlyTuition: overrides.monthlyTuition ?? defaults.monthlyTuition,
+          admissionFee: overrides.admissionFee ?? defaults.admissionFee,
+          examFee: overrides.examFee ?? defaults.examFee,
+          otherFee: overrides.otherFee ?? defaults.otherFee,
+          discount: overrides.discount ?? defaults.discount,
+          scholarship: overrides.scholarship ?? defaults.scholarship,
+        };
 
     const invoice = new FeeInvoice({
       student: studentId,
       academicSession,
       period,
-      invoiceType: invoiceType || "tuition",
+      invoiceType: type,
       dueDate,
       ...fields,
       totalAmount: computeInvoiceTotal(fields),
@@ -189,6 +195,9 @@ export async function recordPayment(req, res, next) {
       return res.status(400).json({ message: "invoice, amount and method are required" });
     }
     if (Math.abs(amount * 100 - Math.round(amount * 100)) > 1e-7) return res.status(400).json({ message: "amount must have at most two decimal places" });
+    if (req.user.role === "subadmin" && method === "adjustment") {
+      return res.status(403).json({ message: "Only an admin can adjust payments" });
+    }
     if (amount <= 0 && method !== "adjustment") {
       return res.status(400).json({ message: "amount must be positive unless method is 'adjustment'" });
     }
@@ -230,6 +239,7 @@ export async function recordPayment(req, res, next) {
             notes,
             receiptNumber,
             receivedBy: req.user._id,
+            receivedByName: req.user.displayName || req.user.username,
           },
         ],
         { session }

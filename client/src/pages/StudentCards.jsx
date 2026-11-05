@@ -21,8 +21,10 @@ export default function StudentCards() {
   const id = params.get("student") || "";
   return <AppLayout title="Student cards">
     <p className="mb-4 text-sm text-ink-600">Cards are valid for one year. A class transfer replaces the card and invalidates its old QR immediately.</p>
-    <StudentCardDirectory onSelect={student => setParams({ student: student._id })} />
-    <StudentCardWorkspace key={id} id={id} onSelect={student => setParams(student ? { student: student._id } : {})} />
+    <div className="grid items-start gap-6 lg:grid-cols-[19rem_minmax(0,1fr)] 2xl:grid-cols-[21rem_minmax(0,1fr)]">
+      <StudentCardDirectory onSelect={student => setParams({ student: student._id })} />
+      <StudentCardWorkspace key={id} id={id} onSelect={student => setParams(student ? { student: student._id } : {})} />
+    </div>
   </AppLayout>;
 }
 
@@ -64,7 +66,7 @@ function StudentCardWorkspace({ id, onSelect }) {
   }
   const { student, card } = data || {};
   const valid = card?.effectiveStatus === "active";
-  return <div className="space-y-5">
+  return <div className="min-w-0 space-y-5">
     <StudentSelector value={student || null} onChange={onSelect} />
     {!id && <p className="text-sm text-ink-500">Select a student to view, issue or edit their card.</p>}
     {loading && <p role="status">Loading card…</p>}
@@ -72,7 +74,7 @@ function StudentCardWorkspace({ id, onSelect }) {
     {student && <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
       <div>
         {card ? <IdentityCard person={student} card={card} settings={settings} qr={qr} /> : <Panel title="No card issued"><p className="text-sm text-ink-600">Issue a card for this student's current class placement.</p></Panel>}
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mx-auto mt-4 grid w-full max-w-[340px] grid-cols-3 gap-2 [&>button]:px-2! [&>button]:text-xs!">
           <Button variant="ghost" disabled={busy || !valid || !qr} onClick={() => exportCard(false)}>Download card</Button>
           <Button variant="ghost" disabled={busy || !valid || !qr} onClick={() => exportCard(true)}>Print card / PDF</Button>
           <Button variant="ghost" disabled={busy} onClick={() => setEditing({ fullName: student.fullName, phone: student.guardian?.primaryPhone || "", photoUrl: student.photoUrl || "" })}>Edit card details</Button>
@@ -81,7 +83,7 @@ function StudentCardWorkspace({ id, onSelect }) {
       <div className="space-y-5">
         <Panel title="Card management">
           <p className="mb-4 text-sm text-ink-600">Student ID stays the same. The QR stays static for this card. Transfers and replacements issue a new QR and revoke the previous card.</p>
-          <div className="flex flex-wrap gap-2">
+          <div className={card?.status === "active" ? "grid grid-cols-3 gap-2 [&>button]:px-2! [&>button]:text-xs!" : "flex gap-2"}>
             {!card && <Button disabled={busy} onClick={() => setAction("issue")}>Issue card</Button>}
             {card?.status === "active" && <><Button disabled={busy} onClick={() => setAction("renew")}>Renew for 1 year</Button><Button variant="danger" disabled={busy} onClick={() => setAction("revoke")}>Revoke card</Button></>}
             {card && <Button variant="ghost" disabled={busy} onClick={() => setAction("replace")}>Replace card</Button>}

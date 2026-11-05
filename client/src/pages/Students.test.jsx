@@ -227,6 +227,8 @@ describe("New student form", () => {
     expect(monthlyTuition).toHaveValue(null);
     await userEvent.type(monthlyTuition, "4000");
     expect(monthlyTuition).toHaveValue(4000);
+    await userEvent.type(screen.getByLabelText("Test session fee"), "800");
+    await userEvent.type(screen.getByLabelText("Stationery fee"), "350");
 
     // Session defaults to the current session already, per
     // emptyStudentForm/StudentFormModal's own reset effect — only class,
@@ -243,6 +245,8 @@ describe("New student form", () => {
     expect(body.feeDetails).toMatchObject({
       monthlyTuition: 4000,
       admissionFee: 0,
+      testSessionFee: 800,
+      stationeryFee: 350,
       examFee: 0,
       otherFee: 0,
       discount: 0,

@@ -23,7 +23,16 @@ import { formatCurrency, formatDate } from "../lib/format";
 const invoicesResource = { list: feesApi.listInvoices };
 
 const INVOICE_STATUSES = ["unpaid", "partially_paid", "paid", "overdue", "waived"];
-const INVOICE_TYPES = ["tuition", "admission", "exam", "other"];
+const INVOICE_TYPE_FIELDS = {
+  tuition: ["monthlyTuition", "discount", "scholarship"],
+  admission: ["admissionFee"],
+  test_session: ["testSessionFee"],
+  stationery: ["stationeryFee"],
+  exam: ["examFee"],
+  other: ["otherFee"],
+};
+const INVOICE_TYPES = Object.keys(INVOICE_TYPE_FIELDS);
+const invoiceTypeLabel = (type) => type?.replace(/_/g, " ");
 
 export default function Fees() {
   const { user } = useAuth();
@@ -74,7 +83,7 @@ export default function Fees() {
     {
       key: "invoiceType",
       header: "Type",
-      render: (row) => <span className="capitalize">{row.invoiceType}</span>,
+      render: (row) => <span className="capitalize">{invoiceTypeLabel(row.invoiceType)}</span>,
     },
     {
       key: "totalAmount",
@@ -122,7 +131,7 @@ export default function Fees() {
 
   return (
     <AppLayout title={restricted ? "Student invoices" : "Fees"}>
-      {restricted && <p className="mb-4 text-sm text-ink-600">Select one student to view their invoices and payment history. Invoice access is read-only.</p>}
+      {restricted && <p className="mb-4 text-sm text-ink-600">Select a student to view invoices and record payments.</p>}
       <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
         <StudentSelector value={studentFilter} onChange={setStudentFilter} />
 
@@ -161,21 +170,21 @@ export default function Fees() {
           <option value="">All types</option>
           {INVOICE_TYPES.map((t) => (
             <option key={t} value={t} className="capitalize">
-              {t}
+              {invoiceTypeLabel(t)}
             </option>
           ))}
         </select>
 
         <div className="flex-1" />
 
-        {!restricted && <><Button variant="ghost" onClick={() => setBulkOpen(true)}>
+        <Button variant="ghost" onClick={() => setBulkOpen(true)}>
           <Layers size={15} />
           Bulk generate
         </Button>
         <Button onClick={() => setNewInvoiceOpen(true)}>
           <Plus size={15} />
           New invoice
-        </Button></>}
+        </Button>
       </div>
 
       {list.error && (
@@ -213,7 +222,8 @@ export default function Fees() {
 
       <InvoiceDetailModal
         invoiceRow={detailTarget}
-        readOnly={restricted}
+        key={detailTarget?._id}
+        canManagePayments={!restricted}
         onClose={() => setDetailTarget(null)}
         onChanged={() => {
           list.refetch();
@@ -226,6 +236,8 @@ export default function Fees() {
 const OVERRIDE_FIELDS = [
   { key: "monthlyTuition", label: "Monthly tuition" },
   { key: "admissionFee", label: "Admission fee" },
+  { key: "testSessionFee", label: "Test session fee" },
+  { key: "stationeryFee", label: "Stationery fee" },
   { key: "examFee", label: "Exam fee" },
   { key: "otherFee", label: "Other fee" },
   { key: "discount", label: "Discount" },
@@ -257,6 +269,39 @@ function NewInvoiceModal({ open, onClose, sessions, defaultSession, onSaved }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const needsFeeDetails = open && student && !student.feeDetails;
+
+  useEffect(() => {
+    if (!needsFeeDetails) return;
+    let cancelled = false;
+    studentsApi.getOne(student._id)
+      .then(({ student: details }) => {
+        if (!cancelled) setStudent({ ...student, feeDetails: details.feeDetails || {} });
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      });
+    return () => { cancelled = true; };
+  }, [needsFeeDetails, student]);
+
+  const selectedFields = INVOICE_TYPE_FIELDS[invoiceType];
+  const dedicatedFee = ["test_session", "stationery"].includes(invoiceType);
+  const overrideFields = OVERRIDE_FIELDS.filter(({ key }) => dedicatedFee
+    ? selectedFields.includes(key)
+    : key !== "testSessionFee" && key !== "stationeryFee");
+  const defaults = Object.fromEntries(overrideFields.map(({ key }) => [
+    key, selectedFields.includes(key) ? Number(student?.feeDetails?.[key] || 0) : 0,
+  ]));
+  const enteredOverrides = useOverrides
+    ? Object.fromEntries(overrideFields
+      .map(({ key }) => [key, overrides[key]])
+      .filter(([, value]) => value !== "" && value !== undefined))
+    : {};
+  const previewCents = overrideFields.reduce((sum, { key }) => {
+    const cents = Math.round(Number(enteredOverrides[key] ?? defaults[key]) * 100);
+    return ["discount", "scholarship"].includes(key) ? sum - cents : sum + cents;
+  }, 0);
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!student) {
@@ -274,9 +319,7 @@ function NewInvoiceModal({ open, onClose, sessions, defaultSession, onSaved }) {
         dueDate,
       };
       if (useOverrides) {
-        body.overrides = Object.fromEntries(
-          Object.entries(overrides).filter(([, v]) => v !== "" && v !== undefined)
-        );
+        body.overrides = enteredOverrides;
       }
       await feesApi.createInvoice(body);
       toast.success(`Invoice created for ${student.fullName}`);
@@ -288,10 +331,6 @@ function NewInvoiceModal({ open, onClose, sessions, defaultSession, onSaved }) {
     }
   }
 
-  const defaults = Object.fromEntries(OVERRIDE_FIELDS.map(({key}) => [key,
-    (invoiceType === 'tuition' ? ['monthlyTuition','discount','scholarship'].includes(key) : ({admission:'admissionFee',exam:'examFee',other:'otherFee'}[invoiceType] === key)) ? Number(student?.feeDetails?.[key] || 0) : 0]));
-  const amounts = Object.fromEntries(OVERRIDE_FIELDS.map(({key}) => [key, useOverrides && overrides[key] !== undefined && overrides[key] !== '' ? Number(overrides[key]) : defaults[key]]));
-  const preview = Math.max(0, OVERRIDE_FIELDS.reduce((sum,{key}) => sum + (['discount','scholarship'].includes(key) ? -1 : 1) * Math.round(amounts[key]*100),0))/100;
   return (
     <Modal open={open} onClose={onClose} title="New invoice">
       <form onSubmit={handleSubmit}>
@@ -301,9 +340,14 @@ function NewInvoiceModal({ open, onClose, sessions, defaultSession, onSaved }) {
           </div>
         )}
 
-        <p className="mb-4 text-sm">Invoice total: <strong>{formatCurrency(preview)}</strong></p>
+        <p className="mb-4 text-sm">
+          Invoice total: <strong>{needsFeeDetails ? "—" : formatCurrency(Math.max(0, previewCents) / 100)}</strong>
+        </p>
         <Field label="Student" required>
-          <InlineStudentPicker value={student} onChange={setStudent} />
+          <InlineStudentPicker value={student} onChange={(selected) => {
+            setStudent(selected);
+            setError("");
+          }} />
         </Field>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -323,7 +367,7 @@ function NewInvoiceModal({ open, onClose, sessions, defaultSession, onSaved }) {
             <Select value={invoiceType} onChange={(e) => setInvoiceType(e.target.value)}>
               {INVOICE_TYPES.map((t) => (
                 <option key={t} value={t} className="capitalize">
-                  {t}
+                  {invoiceTypeLabel(t)}
                 </option>
               ))}
             </Select>
@@ -351,15 +395,13 @@ function NewInvoiceModal({ open, onClose, sessions, defaultSession, onSaved }) {
 
         {useOverrides && (
           <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-md border border-ink-100 bg-paper-100/60 p-3">
-            {OVERRIDE_FIELDS.map((f) => (
+            {overrideFields.map((f) => (
               <Field key={f.key} label={f.label}>
                 <TextInput
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder={
-                    (invoiceType === "tuition" ? ["monthlyTuition", "discount", "scholarship"].includes(f.key) : ({ admission: "admissionFee", exam: "examFee", other: "otherFee" }[invoiceType] === f.key)) ? String(student?.feeDetails?.[f.key] || 0) : "0"
-                  }
+                  placeholder={String(defaults[f.key])}
                   value={overrides[f.key] ?? ""}
                   onChange={(e) => setOverrides({ ...overrides, [f.key]: e.target.value })}
                 />
@@ -372,7 +414,7 @@ function NewInvoiceModal({ open, onClose, sessions, defaultSession, onSaved }) {
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" disabled={saving || !!needsFeeDetails}>
             {saving ? "Creating…" : "Create invoice"}
           </Button>
         </div>
@@ -396,7 +438,7 @@ function InlineStudentPicker({ value, onChange }) {
     }
     const handle = setTimeout(() => {
       studentsApi
-        .list({ search: query, limit: 8, status: "active" })
+        .list({ search: query, limit: 8 })
         .then((res) => setResults(res.items))
         .catch(() => setResults([]));
     }, 250);
@@ -603,7 +645,7 @@ function BulkGenerateModal({ open, onClose, sessions, defaultSession, onDone }) 
               >
                 {INVOICE_TYPES.map((type) => (
                   <option key={type} value={type} className="capitalize">
-                    {type}
+                    {invoiceTypeLabel(type)}
                   </option>
                 ))}
               </Select>
@@ -684,7 +726,7 @@ function BulkGenerateModal({ open, onClose, sessions, defaultSession, onDone }) 
   );
 }
 
-function InvoiceDetailModal({ invoiceRow, onClose, onChanged, readOnly = false }) {
+function InvoiceDetailModal({ invoiceRow, onClose, onChanged, canManagePayments }) {
   const toast = useToast();
   const { settings } = useAcademy();
   const [data, setData] = useState(null); // {invoice, payments}
@@ -713,7 +755,7 @@ function InvoiceDetailModal({ invoiceRow, onClose, onChanged, readOnly = false }
 
   const invoice = data?.invoice;
   const outstanding = invoice && invoice.status !== "waived" ? Math.max(0, invoice.totalAmount - invoice.amountPaid) : 0;
-  const canPay = !readOnly && invoice && !["paid", "waived"].includes(invoice.status);
+  const canPay = invoice && !["paid", "waived"].includes(invoice.status);
 
   return (
     <Modal
@@ -730,7 +772,7 @@ function InvoiceDetailModal({ invoiceRow, onClose, onChanged, readOnly = false }
             <div>
               <div className="text-xs text-ink-500">
                 {invoice.student?.admissionNumber} · {invoice.period} ·{" "}
-                <span className="capitalize">{invoice.invoiceType}</span>
+                <span className="capitalize">{invoiceTypeLabel(invoice.invoiceType)}</span>
               </div>
               <div className="text-xs text-ink-500">Due {formatDate(invoice.dueDate)}</div>
             </div>
@@ -741,6 +783,8 @@ function InvoiceDetailModal({ invoiceRow, onClose, onChanged, readOnly = false }
             {[
               ["Monthly tuition", invoice.monthlyTuition],
               ["Admission fee", invoice.admissionFee],
+              ["Test session fee", invoice.testSessionFee],
+              ["Stationery fee", invoice.stationeryFee],
               ["Exam fee", invoice.examFee],
               ["Other fee", invoice.otherFee],
               ["Discount", -invoice.discount],
@@ -769,12 +813,12 @@ function InvoiceDetailModal({ invoiceRow, onClose, onChanged, readOnly = false }
 
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-xs font-medium tracking-wide text-ink-600">PAYMENTS</h3>
-            {!readOnly && invoice.status === "paid" && invoice.amountPaid > 0 && <Button variant="ghost" onClick={() => setPaymentOpen(true)}>Adjust payment</Button>}
+            {canManagePayments && invoice.status === "paid" && invoice.amountPaid > 0 && <Button variant="ghost" onClick={() => setPaymentOpen(true)}>Adjust payment</Button>}
             {canPay && (
               <div className="flex gap-2">
-                <Button variant="ghost" className="!py-1 !px-2.5 !text-xs" onClick={() => setWaiveOpen(true)}>
+                {canManagePayments && <Button variant="ghost" className="!py-1 !px-2.5 !text-xs" onClick={() => setWaiveOpen(true)}>
                   Waive
-                </Button>
+                </Button>}
                 <Button variant="ghost" className="!py-1 !px-2.5 !text-xs" onClick={() => setPaymentOpen(true)}>
                   Record payment
                 </Button>
@@ -785,7 +829,7 @@ function InvoiceDetailModal({ invoiceRow, onClose, onChanged, readOnly = false }
           {data.payments.length === 0 ? (
             <p className="text-sm text-ink-500">No payments recorded yet.</p>
           ) : (
-            <div className="overflow-hidden rounded-md border border-ink-100">
+            <div className="overflow-x-auto rounded-md border border-ink-100">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-ink-100 bg-ink-100/60 text-left text-ink-600">
@@ -793,6 +837,7 @@ function InvoiceDetailModal({ invoiceRow, onClose, onChanged, readOnly = false }
                     <th className="px-3 py-1.5 font-medium">Method</th>
                     <th className="px-3 py-1.5 font-medium">Date</th>
                     <th className="px-3 py-1.5 text-right font-medium">Amount</th>
+                    <th className="px-3 py-1.5 font-medium">Recorded by</th>
                     <th className="px-3 py-1.5 font-medium">Print</th>
                   </tr>
                 </thead>
@@ -803,6 +848,7 @@ function InvoiceDetailModal({ invoiceRow, onClose, onChanged, readOnly = false }
                       <td className="px-3 py-1.5 capitalize">{p.method.replace(/_/g, " ")}</td>
                       <td className="px-3 py-1.5">{formatDate(p.paidAt)}</td>
                       <td className="px-3 py-1.5 text-right font-tabular">{formatCurrency(p.amount)}</td>
+                      <td className="px-3 py-1.5">{p.receivedByName || p.receivedBy?.displayName || p.receivedBy?.username || "—"}</td>
                       <td className="px-3 py-1.5"><button type="button" className="text-ink-600 hover:text-ink-950" aria-label={`Print receipt ${p.receiptNumber}`} onClick={() => printReceipt(p, invoice, settings)}><Printer size={15} /></button></td>
                     </tr>
                   ))}
@@ -816,6 +862,7 @@ function InvoiceDetailModal({ invoiceRow, onClose, onChanged, readOnly = false }
             onClose={() => setPaymentOpen(false)}
             invoice={invoice}
             outstanding={outstanding}
+            canAdjust={canManagePayments}
             onSaved={() => {
               setPaymentOpen(false);
               refresh();
@@ -940,7 +987,7 @@ function WaiveInvoiceModal({ open, onClose, invoice, onSaved }) {
   );
 }
 
-function RecordPaymentModal({ open, onClose, invoice, outstanding, onSaved }) {
+function RecordPaymentModal({ open, onClose, invoice, outstanding, canAdjust, onSaved }) {
   const toast = useToast();
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
@@ -990,6 +1037,11 @@ function RecordPaymentModal({ open, onClose, invoice, outstanding, onSaved }) {
         <p className="mb-4 text-xs text-ink-500">
           Remaining balance: <span className="font-tabular font-medium text-ink-800">{formatCurrency(outstanding)}</span>
         </p>
+        {outstanding > 0 && method !== "adjustment" && (
+          <Button type="button" variant="ghost" onClick={() => setAmount(outstanding.toFixed(2))}>
+            Use full balance
+          </Button>
+        )}
         <Field label="Amount" required>
           <TextInput
             type="number"
@@ -1006,7 +1058,7 @@ function RecordPaymentModal({ open, onClose, invoice, outstanding, onSaved }) {
             <option value="bank_transfer">Bank transfer</option>
             <option value="card">Card</option>
             <option value="online">Online</option>
-            <option value="adjustment">Adjustment</option>
+            {canAdjust && <option value="adjustment">Adjustment</option>}
           </Select>
         </Field>
         {method === "adjustment" && <p className="mb-4 text-xs text-ink-600">Enter a negative PKR amount to reverse a payment. You cannot reverse more than the total paid. Add a reference or note for the audit trail.</p>}

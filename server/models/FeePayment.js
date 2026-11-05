@@ -28,6 +28,7 @@ const feePaymentSchema = new Schema(
     receiptNumber: { type: String, required: true, unique: true },
 
     receivedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    receivedByName: { type: String, trim: true, default: "" },
     paidAt: { type: Date, default: Date.now },
     notes: { type: String, trim: true, default: "" },
   },

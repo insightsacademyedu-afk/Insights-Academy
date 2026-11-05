@@ -16,7 +16,7 @@ export default function DashboardAdmin() {
 
       {data && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
             <StatCard
               label="Active students"
               value={formatNumber(data.students.active || 0)}
@@ -31,6 +31,11 @@ export default function DashboardAdmin() {
               label="Fees collected"
               value={formatCurrency(data.fees.totalCollected)}
               sub={`of ${formatCurrency(data.fees.totalBilled)} billed`}
+              tone="moss"
+            />
+            <StatCard
+              label="Test session fees collected"
+              value={formatCurrency(data.fees.testSessionCollected)}
               tone="moss"
             />
             <StatCard

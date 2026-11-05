@@ -11,6 +11,8 @@ const feeDetailsSchema = new Schema(
   {
     monthlyTuition: { type: Number, min: 0, default: 0 },
     admissionFee: { type: Number, min: 0, default: 0 },
+    testSessionFee: { type: Number, min: 0, default: 0 },
+    stationeryFee: { type: Number, min: 0, default: 0 },
     examFee: { type: Number, min: 0, default: 0 },
     otherFee: { type: Number, min: 0, default: 0 },
     discount: { type: Number, min: 0, default: 0 },
@@ -19,7 +21,7 @@ const feeDetailsSchema = new Schema(
   { _id: false }
 );
 
-moneyFields(feeDetailsSchema, ["monthlyTuition","admissionFee","examFee","otherFee","discount","scholarship"]);
+moneyFields(feeDetailsSchema, ["monthlyTuition","admissionFee","testSessionFee","stationeryFee","examFee","otherFee","discount","scholarship"]);
 
 const studentSchema = new Schema(
   {
@@ -65,7 +67,7 @@ const studentSchema = new Schema(
 // instead of being recalculated ad hoc in multiple controllers.
 studentSchema.virtual("totalPayable").get(function () {
   const f = this.feeDetails || {};
-  return Math.max(0, sumMoney(f.monthlyTuition, f.admissionFee, f.examFee, f.otherFee, -Number(f.discount || 0), -Number(f.scholarship || 0)));
+  return Math.max(0, sumMoney(f.monthlyTuition, f.admissionFee, f.testSessionFee, f.stationeryFee, f.examFee, f.otherFee, -Number(f.discount || 0), -Number(f.scholarship || 0)));
 });
 
 studentSchema.set("toJSON", { virtuals: true });

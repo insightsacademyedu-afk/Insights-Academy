@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
-import TeacherCards from "./TeacherCards";
+import TeacherAttendance from "./TeacherAttendance";
 import StudentCards from "./StudentCards";
 import { teacherCardsApi, studentCardsApi } from "../api/attendance";
 
@@ -15,7 +15,7 @@ const data = {
   card: { _id: "card1", token: "AMT1_first", status: "active", effectiveStatus: "active", version: 1, issuedAt: "2026-10-30T19:00:00Z", expiresAt: "2027-10-30T19:00:00Z" }, history: [],
 };
 beforeEach(() => { vi.clearAllMocks(); teacherCardsApi.get.mockResolvedValue(data); });
-const show = () => render(<MemoryRouter initialEntries={["/teacher-cards?teacher=42"]}><TeacherCards /></MemoryRouter>);
+const show = () => render(<MemoryRouter initialEntries={["/teacher-attendance?tab=cards&teacher=42"]}><TeacherAttendance /></MemoryRouter>);
 
 it("shows the employee card with designation and QR, without guardian or phone details", async () => {
   show();
@@ -24,6 +24,9 @@ it("shows the employee card with designation and QR, without guardian or phone d
   expect(screen.getByText("Employee ID: EMP-0042")).toBeInTheDocument();
   expect(screen.queryByText(/Guardian phone/)).not.toBeInTheDocument();
   expect(screen.getByText("EMPLOYEE IDENTITY CARD").parentElement).toHaveClass("bg-[#1e2a44]", "border-[#b07f22]");
+  fireEvent.change(screen.getByLabelText("Teacher"), { target: { value: "" } });
+  expect(screen.getByRole("link", { name: "Teacher cards" })).toHaveAttribute("aria-current", "page");
+  expect(screen.getByText("Select a teacher to issue or edit their employee card.")).toBeInTheDocument();
 });
 
 it("edits name and designation and retains the employee identity", async () => {

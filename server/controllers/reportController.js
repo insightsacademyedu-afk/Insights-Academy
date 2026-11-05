@@ -74,7 +74,7 @@ export async function feeCollectionReport(req, res, next) {
       }
     }
 
-    const payments = await FeePayment.find(filter).populate("student", "fullName admissionNumber").sort({ paidAt: -1 });
+    const payments = await FeePayment.find(filter).populate("student", "fullName admissionNumber").populate("receivedBy", "displayName username").sort({ paidAt: -1 });
 
     if (format === "csv") {
       const csv = toCsv(payments, [
@@ -84,6 +84,7 @@ export async function feeCollectionReport(req, res, next) {
         { label: "Admission #", value: (p) => p.student?.admissionNumber || "" },
         { label: "Amount (PKR)", value: (p) => p.amount },
         { label: "Method", value: (p) => p.method },
+        { label: "Recorded by", value: (p) => p.receivedByName || p.receivedBy?.displayName || p.receivedBy?.username || "" },
       ]);
       return sendCsv(res, "fee-collection-report.csv", csv);
     }

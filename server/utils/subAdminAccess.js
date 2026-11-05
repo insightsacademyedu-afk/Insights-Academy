@@ -25,6 +25,7 @@ export function canAccessAsSubAdmin(req) {
   }
   if (baseUrl === "/api/dashboard") return read && matches(path, `/tests/${id}/grade-distribution`);
   if (baseUrl === "/api/fees") {
+    if (method === "POST") return matches(path, "/(?:invoices(?:/bulk-generate)?|payments)");
     if (!read) return false;
     if (matches(path, "/invoices")) return /^[a-f\d]{24}$/i.test(req.query.student || "");
     return matches(path, `/invoices/${id}`) || matches(path, `/students/${id}/summary`);

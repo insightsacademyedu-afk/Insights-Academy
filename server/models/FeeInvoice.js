@@ -22,7 +22,7 @@ const feeInvoiceSchema = new Schema(
     period: { type: String, required: true, trim: true },
     invoiceType: {
       type: String,
-      enum: ["tuition", "admission", "exam", "other"],
+      enum: ["tuition", "admission", "test_session", "stationery", "exam", "other"],
       default: "tuition",
     },
 
@@ -30,6 +30,8 @@ const feeInvoiceSchema = new Schema(
     // recalculated from the live Student.feeDetails after creation.
     monthlyTuition: { type: Number, min: 0, default: 0 },
     admissionFee: { type: Number, min: 0, default: 0 },
+    testSessionFee: { type: Number, min: 0, default: 0 },
+    stationeryFee: { type: Number, min: 0, default: 0 },
     examFee: { type: Number, min: 0, default: 0 },
     otherFee: { type: Number, min: 0, default: 0 },
     discount: { type: Number, min: 0, default: 0 },
@@ -79,7 +81,7 @@ feeInvoiceSchema.pre("validate", async function (next) {
 
 // The one and only place invoice totals get computed.
 export function computeInvoiceTotal(fields) {
-  return Math.max(0, sumMoney(fields.monthlyTuition, fields.admissionFee, fields.examFee, fields.otherFee, -Number(fields.discount || 0), -Number(fields.scholarship || 0)));
+  return Math.max(0, sumMoney(fields.monthlyTuition, fields.admissionFee, fields.testSessionFee, fields.stationeryFee, fields.examFee, fields.otherFee, -Number(fields.discount || 0), -Number(fields.scholarship || 0)));
 }
 
 // Keeps `status` consistent with amountPaid vs totalAmount so nothing has
@@ -98,5 +100,5 @@ feeInvoiceSchema.methods.recomputeStatus = function recomputeStatus() {
 };
 
 feeInvoiceSchema.plugin(finiteNumbers);
-moneyFields(feeInvoiceSchema,["monthlyTuition","admissionFee","examFee","otherFee","discount","scholarship","totalAmount","amountPaid"]);
+moneyFields(feeInvoiceSchema,["monthlyTuition","admissionFee","testSessionFee","stationeryFee","examFee","otherFee","discount","scholarship","totalAmount","amountPaid"]);
 export default mongoose.model("FeeInvoice", feeInvoiceSchema);

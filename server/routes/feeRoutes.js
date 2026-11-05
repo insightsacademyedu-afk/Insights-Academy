@@ -17,11 +17,11 @@ router.use(requireAuth, requireRole("admin", "subadmin"));
 
 router.get("/invoices", listInvoices);
 router.get("/invoices/:id", getInvoice);
-router.post("/invoices", requireRole("admin"), createInvoice);
-router.post("/invoices/bulk-generate", requireRole("admin"), bulkGenerateTuitionInvoices);
+router.post("/invoices", createInvoice);
+router.post("/invoices/bulk-generate", bulkGenerateTuitionInvoices);
 router.patch("/invoices/:id/waive", requireRole("admin"), waiveInvoice);
 
-router.post("/payments", requireRole("admin"), recordPayment);
+router.post("/payments", recordPayment);
 
 router.get("/students/:studentId/summary", studentFeeSummary);
 

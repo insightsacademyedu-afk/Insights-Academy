@@ -226,6 +226,7 @@ function FeeCollectionReportTab({ student }) {
       render: (row) => formatCurrency(row.amount),
     },
     { key: "method", header: "Method", render: (row) => <span className="capitalize">{row.method}</span> },
+    { key: "receivedBy", header: "Recorded by", render: (row) => row.receivedByName || row.receivedBy?.displayName || row.receivedBy?.username || "—" },
   ];
 
   return (

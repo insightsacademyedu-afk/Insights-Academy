@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import AttendanceScanner from "../components/AttendanceScanner";
 import AppLayout from "../components/AppLayout";
 import Panel from "../components/Panel";
@@ -8,6 +9,7 @@ import Pagination from "../components/Pagination";
 import { Field, TextInput, Select } from "../components/FormFields";
 import { teacherAttendanceApi } from "../api/attendance";
 import { attendanceTime, todayInKarachi } from "../lib/attendance";
+import TeacherCards from "./TeacherCards";
 
 const columns = [
   { key: "teacherName", header: "Teacher" },
@@ -19,6 +21,30 @@ const columns = [
 ];
 
 export default function TeacherAttendance() {
+  const [params] = useSearchParams();
+  const showCards = params.get("tab") === "cards";
+
+  return <AppLayout title="Teacher attendance">
+    <nav aria-label="Teacher attendance sections" className="mb-5 inline-flex flex-wrap rounded-md border border-ink-200 bg-paper-50 p-0.5">
+      {[
+        { label: "Attendance", to: "/teacher-attendance", current: !showCards },
+        { label: "Teacher cards", to: "/teacher-attendance?tab=cards", current: showCards },
+      ].map(({ label, to, current }) => (
+        <Link
+          key={to}
+          to={to}
+          aria-current={current ? "page" : undefined}
+          className={`rounded px-3.5 py-1.5 text-sm font-medium ${current ? "bg-action-900 text-white" : "text-ink-600 hover:text-ink-900"}`}
+        >
+          {label}
+        </Link>
+      ))}
+    </nav>
+    {showCards ? <TeacherCards /> : <AttendanceWorkspace />}
+  </AppLayout>;
+}
+
+function AttendanceWorkspace() {
   const [search, setSearch] = useState("");
   const [teachers, setTeachers] = useState([]);
   const [teacher, setTeacher] = useState("");
@@ -49,7 +75,7 @@ export default function TeacherAttendance() {
     try { const result = await teacherAttendanceApi.mark(teacher); setMessage(result.message); setReload(value => value + 1); }
     catch (err) { setError(err.message); } finally { setBusy(false); }
   }
-  return <AppLayout title="Teacher attendance">
+  return <>
     <p className="mb-5 text-sm text-ink-600">Only admin and subadmin can mark and view teacher attendance. One check-in per teacher per day, using Pakistan time.</p>
     <div className="space-y-5">
       <Panel title="Scan student or teacher card"><AttendanceScanner onSaved={() => setReload(value => value + 1)} /></Panel>
@@ -72,5 +98,5 @@ export default function TeacherAttendance() {
         {!loading && !error && <Pagination page={page} total={records.total} totalPages={records.totalPages} onChange={setPage} />}
       </Panel>
     </div>
-  </AppLayout>;
+  </>;
 }
