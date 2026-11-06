@@ -19,19 +19,40 @@ it("combines class and name search, paginates and selects a card", async () => {
   await screen.findByRole("option", { name: "Class 9" });
   fireEvent.change(screen.getByLabelText("Filter cards by class"), { target: { value: "class9" } });
   fireEvent.change(screen.getByLabelText("Search cards"), { target: { value: "Amina" } });
-  await waitFor(() => expect(studentsApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ class: "class9", search: "Amina", page: 1 })));
+  fireEvent.change(screen.getByLabelText("Filter by card or student status"), { target: { value: "recent" } });
+  await waitFor(() => expect(studentsApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ class: "class9", search: "Amina", cardFilter: "recent", sortBy: "createdAt", sortDir: "desc", page: 1 })));
   fireEvent.click(await screen.findByRole("button", { name: "Next page" }));
   await waitFor(() => expect(studentsApi.list).toHaveBeenLastCalledWith(expect.objectContaining({ class: "class9", search: "Amina", page: 2 })));
   fireEvent.click(await screen.findByRole("button", { name: "View card" }));
   expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ _id: "student1" }));
 });
-it("exports the whole selected class and reports skipped cards", async () => {
+it("selects all matching pages and exports with filters and exclusions", async () => {
   exportStudentCards.mockResolvedValue({ count: 10, skipped: ["Ahmed (0043)"] });
   render(<StudentCardDirectory onSelect={vi.fn()} />);
   await screen.findByRole("option", { name: "Class 9" });
   fireEvent.change(screen.getByLabelText("Filter cards by class"), { target: { value: "class9" } });
+  fireEvent.change(screen.getByLabelText("Search cards"), { target: { value: "Amina" } });
+  const student = await screen.findByRole("checkbox", { name: "Amina (0042)" });
+  fireEvent.click(screen.getByRole("checkbox", { name: "Select all matching students" }));
+  expect(student).toBeChecked();
+  fireEvent.click(student);
   fireEvent.click(screen.getByRole("button", { name: "Download bulk PDF (A4)" }));
   expect(await screen.findByText(/Downloaded 10 cards on 2 A4 pages/)).toBeInTheDocument();
-  expect(exportStudentCards).toHaveBeenCalledWith(expect.objectContaining({ classId: "class9" }));
+  expect(exportStudentCards).toHaveBeenCalledWith(expect.objectContaining({
+    classId: "class9", filters: { search: "Amina", cardFilter: "" }, excludedIds: new Set(["student1"]),
+  }));
   expect(screen.getByText("Ahmed (0043)")).toBeInTheDocument();
+});
+
+it("exports only the students checked individually", async () => {
+  exportStudentCards.mockResolvedValue({ count: 1, skipped: [] });
+  render(<StudentCardDirectory onSelect={vi.fn()} />);
+  const download = screen.getByRole("button", { name: "Download bulk PDF (A4)" });
+  expect(download).toBeDisabled();
+  fireEvent.click(await screen.findByRole("checkbox", { name: "Amina (0042)" }));
+  fireEvent.click(download);
+  expect(await screen.findByText(/Downloaded 1 cards/)).toBeInTheDocument();
+  expect(exportStudentCards).toHaveBeenCalledWith(expect.objectContaining({
+    students: [{ _id: "student1", fullName: "Amina", admissionNumber: "0042" }],
+  }));
 });

@@ -30,6 +30,24 @@ test("academy day changes at Pakistan midnight; annual validity uses local calen
   expect(academyDay(annualExpiry(new Date("2028-02-29T10:00:00Z")))).toBe("2029-02-28");
 });
 
+test("student card filters combine with class, search and pagination", async () => {
+  const { admin, chain, student, card } = await setup();
+  const unissued = await createEnrolledStudent(chain);
+  const otherClass = await createAcademicChain({ className: "Class 10" });
+  await createEnrolledStudent(otherClass);
+  await StudentCard.updateOne({ _id: card._id }, { expiresAt: new Date(Date.now() - 1000) });
+  await Student.collection.updateOne({ _id: student._id }, { $set: { createdAt: new Date(0) } });
+
+  const list = query => admin.agent.get("/api/students").query({ class: String(chain.klass._id), ...query }).expect(200);
+  for (const [cardFilter, match] of [["expired", student], ["unissued", unissued.student], ["recent", unissued.student]]) {
+    const { body } = await list({ cardFilter, search: match.admissionNumber, limit: 1 });
+    expect(body.total).toBe(1);
+    expect(body.items.map(item => item._id)).toEqual([String(match._id)]);
+  }
+  expect((await list({ cardFilter: "recent", search: student.admissionNumber })).body.total).toBe(0);
+  expect((await list({ cardFilter: "unissued" })).body.total).toBe(1);
+});
+
 test("new enrollment automatically issues a class-linked random static QR; edits keep it unchanged", async () => {
   const admin = await createAdminSession(app);
   const chain = await createAcademicChain();

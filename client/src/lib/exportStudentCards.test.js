@@ -35,3 +35,11 @@ it("does not download an empty PDF", async () => {
   expect(await exportStudentCards({ settings: {} })).toEqual({ count: 0, skipped: [] });
   expect(createCardPdf).not.toHaveBeenCalled();
 });
+
+it("checks only explicitly selected students", async () => {
+  studentCardsApi.get.mockResolvedValue({ card: null });
+  const students = [{ _id: "2", fullName: "Amina", admissionNumber: "0042" }];
+  expect(await exportStudentCards({ settings: {}, students })).toEqual({ count: 0, skipped: ["Amina (0042)"] });
+  expect(studentsApi.list).not.toHaveBeenCalled();
+  expect(studentCardsApi.get).toHaveBeenCalledExactlyOnceWith("2");
+});

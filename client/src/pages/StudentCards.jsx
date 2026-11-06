@@ -18,17 +18,18 @@ import { exportStudentCard } from "../lib/exportStudentCard";
 
 export default function StudentCards() {
   const [params, setParams] = useSearchParams();
+  const [revision, setRevision] = useState(0);
   const id = params.get("student") || "";
   return <AppLayout title="Student cards">
     <p className="mb-4 text-sm text-ink-600">Cards are valid for one year. A class transfer replaces the card and invalidates its old QR immediately.</p>
     <div className="grid items-start gap-6 lg:grid-cols-[19rem_minmax(0,1fr)] 2xl:grid-cols-[21rem_minmax(0,1fr)]">
-      <StudentCardDirectory onSelect={student => setParams({ student: student._id })} />
-      <StudentCardWorkspace key={id} id={id} onSelect={student => setParams(student ? { student: student._id } : {})} />
+      <StudentCardDirectory revision={revision} onSelect={student => setParams({ student: student._id })} />
+      <StudentCardWorkspace key={id} id={id} onChange={() => setRevision(value => value + 1)} onSelect={student => setParams(student ? { student: student._id } : {})} />
     </div>
   </AppLayout>;
 }
 
-function StudentCardWorkspace({ id, onSelect }) {
+function StudentCardWorkspace({ id, onSelect, onChange }) {
   const { settings } = useAcademy();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(Boolean(id));
@@ -52,12 +53,12 @@ function StudentCardWorkspace({ id, onSelect }) {
   }, [token]);
   async function performAction() {
     setBusy(true); setError("");
-    try { setData(await studentCardsApi.action(id, action)); setAction(""); }
+    try { setData(await studentCardsApi.action(id, action)); setAction(""); onChange(); }
     catch (err) { setError(err.message); } finally { setBusy(false); }
   }
   async function save(event) {
     event.preventDefault(); setBusy(true); setError("");
-    try { await studentsApi.update(id, { fullName: editing.fullName.trim(), photoUrl: editing.photoUrl, guardian: { primaryPhone: editing.phone.trim() } }); setData(await studentCardsApi.get(id)); setEditing(null); }
+    try { await studentsApi.update(id, { fullName: editing.fullName.trim(), photoUrl: editing.photoUrl, guardian: { primaryPhone: editing.phone.trim() } }); onChange(); setData(await studentCardsApi.get(id)); setEditing(null); }
     catch (err) { setError(err.message); } finally { setBusy(false); }
   }
   async function exportCard(print) {

@@ -12,13 +12,20 @@ const loadImage = src => new Promise((resolve, reject) => {
   image.src = src;
 });
 
-export async function exportStudentCards({ classId, settings, onProgress = () => {} }) {
+export async function exportStudentCards({ classId, settings, students, filters, excludedIds = new Set(), onProgress = () => {} }) {
   const images = [], skipped = [];
   let page = 1, totalPages = 1, processed = 0;
   do {
-    const result = await studentsApi.list({ page, limit: 100, status: "active", sortBy: "_id", sortDir: "asc", ...(classId ? { class: classId } : {}) });
+    const result = students
+      ? { items: students, totalPages: 1, total: students.length }
+      : await studentsApi.list({
+          ...(!filters ? { status: "active" } : filters),
+          page, limit: 100, sortBy: "_id", sortDir: "asc",
+          ...(classId ? { class: classId } : {}),
+        });
     totalPages = result.totalPages;
     for (const student of result.items) {
+      if (excludedIds.has(student._id)) continue;
       const data = await studentCardsApi.get(student._id);
       // A transfer during export must not place another class's card in this batch.
       if (data.card?.effectiveStatus !== "active" || !data.card.token || (classId && String(data.currentAssignment?.class?._id) !== classId)) {
@@ -30,7 +37,7 @@ export async function exportStudentCards({ classId, settings, onProgress = () =>
         await drawStudentCard(canvas.getContext("2d"), { ...data, settings, qr }, loadImage);
         images.push(canvas.toDataURL("image/jpeg", 0.95));
       }
-      onProgress(++processed, result.total);
+      onProgress(++processed, Math.max(processed, result.total - excludedIds.size));
     }
     page++;
   } while (page <= totalPages);

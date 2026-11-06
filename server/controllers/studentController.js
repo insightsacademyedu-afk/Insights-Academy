@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import { phonePassword, provisionParent } from "../utils/parentLogin.js";
 import { normalizeLoginPhone } from "../utils/loginIdentity.js";
 import Student from "../models/Student.js";
+import StudentCard from "../models/StudentCard.js";
 import Guardian from "../models/Guardian.js";
 import StudentClassAssignment from "../models/StudentClassAssignment.js";
 import TestResult from "../models/TestResult.js";
@@ -76,8 +77,20 @@ export async function list(req, res, next) {
         }).distinct("student");
         filter._id = { $in: studentIds };
       }
+      if (req.query.cardFilter === "recent") {
+        filter.createdAt = { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) };
+      }
+      if (req.query.cardFilter === "unissued") {
+        const issuedIds = await StudentCard.distinct("student");
+        filter._id = { ...filter._id, $nin: issuedIds };
+      }
+      if (req.query.cardFilter === "expired") {
+        const expiredIds = await StudentCard.distinct("student", { status: "active", expiresAt: { $lte: new Date() } });
+        const expired = new Set(expiredIds.map(String));
+        filter._id = { $in: filter._id ? filter._id.$in.filter(id => expired.has(String(id))) : expiredIds };
+      }
       const [items, total] = await Promise.all([
-        Student.find(filter).select(req.user.role === "subadmin" ? "-feeDetails" : "").lean(req.user.role === "subadmin").populate("guardian").sort(sort).skip(skip).limit(limit),
+        Student.find(filter).select(req.user.role === "subadmin" ? "-feeDetails" : "").lean(req.user.role === "subadmin").populate("guardian").sort(req.query.cardFilter ? { ...sort, _id: sort._id ?? 1 } : sort).skip(skip).limit(limit),
         Student.countDocuments(filter),
       ]);
       return res.json(paginatedResponse(items, total, page, limit));
